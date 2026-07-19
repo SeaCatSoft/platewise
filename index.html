@@ -123,6 +123,7 @@ th{background:var(--deep);color:#fff;text-align:left;padding:9px 12px;font-weigh
 td{padding:9px 12px;border-bottom:1px solid var(--line)}
 tr:nth-child(even) td{background:#FAFBF8}
 .note-cell{color:var(--coral);font-weight:600;font-size:12.5px}
+.hint-cell{color:var(--muted);font-weight:500;font-size:12px}
 .alt-cell{color:#8a6414;font-weight:600;font-size:12.5px}
 .total-row td{font-weight:800;background:var(--gold-soft)!important;font-size:15px}
 .store-tag{display:inline-block;background:var(--deep-soft);color:var(--deep);border-radius:6px;padding:2px 8px;font-size:11.5px;font-weight:700}
@@ -381,7 +382,7 @@ details.recipe li{margin-bottom:5px}
     <div class="targets" id="targetsBox"></div>
     <div class="week-tabs" id="weekTabs"></div>
     <div id="planBody"></div>
-    <p class="hint" style="margin-top:10px">Tap any meal's <b>Recipe</b> to open the full method. Pantry staples (salt, pepper, Bajan seasoning, garlic, thyme, lime) are assumed and aren't added to your shopping list.</p>
+    <p class="hint" style="margin-top:10px">Tap any meal's <b>Recipe</b> to open the full method. Every ingredient the recipes call for — including onion, garlic, thyme, lime and seasonings — is carried into your shopping list.</p>
     <div class="nav-row">
       <button class="btn btn-secondary" onclick="goStep(5)">Adjust plan</button>
       <button class="btn btn-primary" onclick="buildShopping()">Build shopping list</button>
@@ -392,7 +393,7 @@ details.recipe li{margin-bottom:5px}
   <section class="panel hidden" id="step-7">
     <span class="eyebrow">Shopping</span>
     <h2 id="shopTitle">Your shopping list</h2>
-    <p class="lede" id="shopLede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. Confirm the list to turn it into a checklist you can tick off in the aisle.</p>
+    <p class="lede" id="shopLede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. The list covers everything your recipes call for. Confirm it to get a checklist you can tick off in the aisle.</p>
     <div class="grid cols-2" id="priceControls" style="margin-bottom:18px">
       <div class="field">
         <label>Pricing mode</label>
@@ -989,11 +990,36 @@ const nice={
 const amt=(f,g)=> nice[f.id]? nice[f.id](g) : `${g} g ${f.name.toLowerCase()}`;
 const byRole=(m,r)=>m.items.find(([f])=>f.role===r);
 const hasId=(m,...ids)=>m.items.some(([f])=>ids.includes(f.id));
+/* Seasonings and aromatics the recipes call for. These aren't in the
+   government price survey, so they're listed separately (unpriced) and
+   converted into sensible pack sizes. */
+const PANTRY={
+  garlic:      {name:"Garlic",              unit:"cloves", per:10,  pack:"bulb"},
+  thyme:       {name:"Fresh thyme",         unit:"sprigs", per:20,  pack:"bunch"},
+  scallion:    {name:"Scallions / chives",  unit:"stalks", per:6,   pack:"bunch"},
+  lime:        {name:"Limes",               unit:"limes",  per:1,   pack:"lime"},
+  green_seas:  {name:"Bajan green seasoning",unit:"tbsp",  per:16,  pack:"bottle"},
+  pepper_sauce:{name:"Pepper sauce",        unit:"tsp",    per:40,  pack:"bottle"},
+  bay:         {name:"Bay leaves",          unit:"leaves", per:25,  pack:"jar"},
+  cinnamon:    {name:"Cinnamon / nutmeg",   unit:"tsp",    per:24,  pack:"jar"},
+  salt:        {name:"Salt",                unit:"tsp",    per:400, pack:"box"},
+  pepper:      {name:"Black pepper",        unit:"tsp",    per:30,  pack:"jar"}
+};
+/* extras shorthand: P(id,qty) = pantry item, X(foodId,grams) = priced food */
+const P=(id,q)=>({p:id,q}), X=(id,g)=>({f:id,g});
+const SEASON_EXTRAS={
+  fish:[P("salt",0.5),P("pepper",0.25),P("lime",0.5),P("green_seas",1)],
+  meat:[P("green_seas",1.5),P("salt",0.5),P("pepper",0.25)],
+  egg: [P("salt",0.25),P("pepper",0.25)],
+  dairy:[P("salt",0.25)],
+  plant:[P("salt",0.5),P("pepper",0.25)]
+};
 const RAW_PROTEIN_STEP={
   fish:"Season with salt, pepper, lime and Bajan seasoning; rest 10 min.",
   meat:"Season generously with Bajan green seasoning, salt and pepper; rest 10–15 min.",
   plant:"If using soya chunks, soak in hot salted water 10 min and squeeze dry."
 };
+const AROMATICS=[X("onions",40),P("garlic",2),P("thyme",1)];
 
 function recipeFor(m,isBreakfast){
   const p=byRole(m,"protein"), c=byRole(m,"carb"), v=byRole(m,"veg"),
@@ -1011,14 +1037,14 @@ function recipeFor(m,isBreakfast){
       p?`Serve with ${A(pMain)} on the side (eggs soft-boiled or scrambled; yogurt spooned over).`:null,
       fr?`Top with ${A(fr)}, sliced.`:null,
       f&&!["milk_2pct","whole_milk"].includes(f[0].id)?`Finish with ${A(f)} swirled through.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[P("salt",0.25),P("cinnamon",0.5)]};
   }
   if(c && c[0].id==="cornflakes"){
     return {title:"Cornflakes & fruit bowl",time:"5 min",steps:[
       `Pour ${A(c)} into a bowl${f?` and add ${A(f)}`:""}.`,
       fr?`Slice ${A(fr)} over the top.`:null,
       p?`Have ${A(pMain)} alongside for protein.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[]};
   }
   if(pn&&pn.id==="eggs"&&isBreakfast){
     return {title:c&&["ww_bread","salt_bread"].includes(c[0].id)?"Scrambled eggs on toast":"Herb omelette",time:"10 min",steps:[
@@ -1028,7 +1054,7 @@ function recipeFor(m,isBreakfast){
       c?`Serve on ${A(c)}, toasted.`:`Fold and slide onto a plate.`,
       fr?`Finish with ${A(fr)} on the side.`:null,
       v?`Add ${A(v)}, quickly sautéed, over the top.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[P("salt",0.25),P("pepper",0.25),P("scallion",1)]};
   }
   if(pn&&pn.id==="yogurt"&&isBreakfast){
     return {title:"Yogurt, fruit & crunch bowl",time:"5 min",steps:[
@@ -1036,7 +1062,7 @@ function recipeFor(m,isBreakfast){
       fr?`Top with ${A(fr)}, chopped.`:null,
       c?`Add ${A(c)} for crunch.`:null,
       f?`Finish with ${A(f)}.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[P("cinnamon",0.25)]};
   }
 
   // ---- keto plate (no carb item) ----
@@ -1047,7 +1073,7 @@ function recipeFor(m,isBreakfast){
       v?`Steam ${A(v)} until just tender, then toss with ${f?A(f):"a knob of margarine"} , salt and pepper.`:null,
       `Plate the protein over the vegetables; squeeze lime over and rest 2 min before eating.`,
       `Keto note: no rice, bread or peas with this meal — the fat is doing the fuelling.`
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant),P("lime",0.5),P("garlic",1)]};
   }
 
   // ---- lunch / dinner patterns ----
@@ -1058,7 +1084,7 @@ function recipeFor(m,isBreakfast){
       v?`Fold through ${A(v)}, shredded or sliced thin.`:null,
       `Pile into ${A(c)}${c[0].id==="salt_bread"?" — classic Bajan cutters":""}.`,
       fr?`Serve with ${A(fr)} on the side.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[X("onions",30),P("lime",0.5),P("pepper",0.25),P("salt",0.25)]};
   }
   const LEG=["split_peas","pigeon_peas_dry","blackeye_peas","pigeon_peas_can"];
   if(LEG.includes(pn.id)){
@@ -1070,7 +1096,7 @@ function recipeFor(m,isBreakfast){
       c?`Serve over ${A(c)}, cooked per pack.`:null,
       v?`Steam ${A(v)} alongside.`:null,
       `A squeeze of lime lifts the whole bowl.`
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...AROMATICS,P("bay",1),P("pepper_sauce",0.5),P("salt",0.5),P("lime",0.5)]};
   }
   if(LEG.includes(c[0].id)){
     const canned=c[0].id==="pigeon_peas_can";
@@ -1081,7 +1107,7 @@ function recipeFor(m,isBreakfast){
       RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
       `Grill, pan-fry or stew ${A(pMain)} until done, and serve over the peas.`,
       v?`Steam ${A(v)} alongside.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...AROMATICS,P("bay",1),P("salt",0.5),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
   if(["white_rice","parboiled_rice","brown_rice"].includes(c[0].id)){
     return {title:`Bajan-style ${pn.name.replace(/ \(.*\)/,"").toLowerCase()} with ${c[0].name.toLowerCase()}`,time:"40 min",steps:[
@@ -1090,7 +1116,7 @@ function recipeFor(m,isBreakfast){
       `Brown ${A(pMain)} in ${f?A(f):"1 tbsp oil"} on medium-high, then lower the heat, splash in water, cover and cook through (stew cuts: simmer 25–35 min until tender).`,
       v?`Add ${A(v)} to the pot for the last 5 minutes, or steam separately.`:null,
       `Taste, adjust salt and pepper sauce, and serve the protein and gravy over the rice.`
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...AROMATICS,P("pepper_sauce",0.5),P("salt",0.75),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
   if(c[0].id==="macaroni"){
     return {title:`One-pot ${pn.name.replace(/ \(.*\)/,"").toLowerCase()} macaroni`,time:"30 min",steps:[
@@ -1099,7 +1125,7 @@ function recipeFor(m,isBreakfast){
       `Cook ${A(pMain)} in ${f?A(f):"1 tbsp oil"} with onion, garlic and a little tomato or pepper sauce.`,
       v?`Stir in ${A(v)}, chopped, for the last few minutes.`:null,
       `Toss the macaroni through with a splash of the pasta water; season and serve hot.`
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...AROMATICS,P("pepper_sauce",0.5),P("salt",0.75),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
   if(c[0].id==="potatoes"){
     return {title:`${pn.name.replace(/ \(.*\)/,"")} with boiled potatoes & ${v?v[0].name.toLowerCase():"veg"}`,time:"35 min",steps:[
@@ -1108,7 +1134,7 @@ function recipeFor(m,isBreakfast){
       `Grill or pan-fry ${A(pMain)} in ${f?A(f):"1 tbsp oil"} until cooked through.`,
       v?`Steam ${A(v)} until bright and tender.`:null,
       `Season the potatoes with pepper and a little of the pan juices, and plate everything together with lime wedges.`
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[P("salt",0.75),P("pepper",0.5),P("lime",0.5),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
   if(["ww_bread","salt_bread"].includes(c[0].id)){
     return {title:`${pn.name.replace(/ \(.*\)/,"")} ${c[0].id==="salt_bread"?"cutters":"sandwiches"}`,time:"15 min",steps:[
@@ -1117,7 +1143,7 @@ function recipeFor(m,isBreakfast){
       v?`Layer with ${A(v)}, sliced.`:null,
       `Fill ${A(c)}${f?`, spread with ${A(f)}`:""}, press and serve.`,
       fr?`Add ${A(fr)} on the side.`:null
-    ].filter(Boolean)};
+    ].filter(Boolean), extras:[...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
   // fallback
   return {title:`${pn.name.replace(/ \(.*\)/,"")} plate`,time:"30 min",steps:[
@@ -1126,7 +1152,7 @@ function recipeFor(m,isBreakfast){
     `Prepare ${A(c)} according to the pack.`,
     v?`Steam ${A(v)}.`:null,
     `Season everything and serve together.`
-  ].filter(Boolean)};
+  ].filter(Boolean), extras:[...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant),X("onions",30),P("garlic",1)]};
 }
 
 /* =====================================================================
@@ -1196,11 +1222,28 @@ document.getElementById("storePick").addEventListener("change",e=>{state.store=e
 
 function buildShopping(){ goStep(7); showPricesView(); renderShopping(); }
 
-function totalsPerFood(){
-  const need={};
-  state.plan.forEach(wk=>wk.days.forEach(d=>d.meals.forEach(m=>m.items.forEach(([f,g])=>{
-    need[f.id]=(need[f.id]||0)+g;}))));
-  return need;
+/* Walk every meal in the plan, collecting BOTH the plated foods and the
+   extra ingredients each recipe calls for (aromatics, seasonings, limes). */
+function collectNeeds(){
+  const need={}, pantry={};
+  state.plan.forEach(wk=>wk.days.forEach(d=>d.meals.forEach((m,mi)=>{
+    m.items.forEach(([f,g])=>{ need[f.id]=(need[f.id]||0)+g; });
+    const r=recipeFor(m, state.mealsPerDay===3&&mi===0);
+    (r.extras||[]).forEach(e=>{
+      if(e.f){ if(FOODS.some(x=>x.id===e.f)) need[e.f]=(need[e.f]||0)+e.g; }
+      else if(e.p && PANTRY[e.p]) pantry[e.p]=(pantry[e.p]||0)+e.q;
+    });
+  })));
+  return {need,pantry};
+}
+function totalsPerFood(){ return collectNeeds().need; }
+/* "84 cloves (about 9 bulbs)" */
+function pantryQty(id,qty){
+  const P0=PANTRY[id], n=Math.ceil(qty);
+  if(P0.per<=1) return `${n} ${P0.unit}`;
+  const packs=Math.ceil(n/P0.per);
+  const plural = packs>1 ? (/(ch|sh|s|x|z)$/.test(P0.pack)?P0.pack+"es":P0.pack+"s") : P0.pack;
+  return `${n} ${P0.unit} (about ${packs} ${plural})`;
 }
 const packCost=(f,store,grams)=>{
   const e=f.prices[store]; if(!e) return null;
@@ -1215,7 +1258,7 @@ const bestBuy=(f,grams)=>{
 };
 
 function computeShopRows(){
-  const need=totalsPerFood(); const rows=[]; let total=0;
+  const {need,pantry}=collectNeeds(); const rows=[]; let total=0;
   for(const id of Object.keys(need)){
     const f=FOODS.find(x=>x.id===id);
     const grams=need[id];
@@ -1238,7 +1281,11 @@ function computeShopRows(){
     if(row.price!=null) total+=row.price;
     rows.push(row);
   }
-  return {rows,total,mode:state.priceMode,store:state.store};
+  const pantryRows=Object.keys(pantry).map(id=>({
+    id:"pantry_"+id, name:PANTRY[id].name, kg:null, buy:pantryQty(id,pantry[id]),
+    store:null, price:null, pantry:true,
+    note:"Not in the price survey — please check the price in store"}));
+  return {rows,pantryRows,total,mode:state.priceMode,store:state.store};
 }
 
 function renderShopping(){
@@ -1250,7 +1297,13 @@ function renderShopping(){
        <td>${r.note?`<span class="${r.note.startsWith("Not stocked")?"alt-cell":"note-cell"}">${r.note}</span>`:`<span class="store-tag">${r.store}</span>`}</td>
        <td style="text-align:right">${r.price!=null?"$"+r.price.toFixed(2):"—"}</td></tr>`).join("")}
      <tr class="total-row"><td colspan="4">Estimated total (${R.mode==="cheapest"?"cheapest mix of stores":R.store})</td>
-     <td style="text-align:right">$${R.total.toFixed(2)}</td></tr></tbody></table>`;
+     <td style="text-align:right">$${R.total.toFixed(2)}</td></tr></tbody></table>`+
+    (R.pantryRows.length?`<div class="cat-title" style="margin-top:22px">Seasonings &amp; aromatics from the recipes</div>
+     <table><thead><tr><th>Item</th><th>Total needed</th><th>Note</th></tr></thead><tbody>
+     ${R.pantryRows.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.buy}</td>
+       <td><span class="note-cell">${r.note}</span></td></tr>`).join("")}
+     </tbody></table>
+     <p class="hint" style="margin-top:8px">These come from the recipe steps. The government survey doesn't track them, so they aren't in the total above — most cost a few dollars and last for weeks.</p>`:"");
 }
 
 function showPricesView(){
@@ -1263,7 +1316,8 @@ function showPricesView(){
 }
 function confirmList(){
   if(!state.shopRows) renderShopping();
-  state.checklist={rows:state.shopRows.rows,total:state.shopRows.total,mode:state.shopRows.mode,
+  state.checklist={rows:[...state.shopRows.rows,...state.shopRows.pantryRows],
+                   total:state.shopRows.total,mode:state.shopRows.mode,
                    store:state.shopRows.store,checked:{},savedAt:Date.now()};
   persistChecklist(); renderChecklist();
 }
@@ -1296,14 +1350,14 @@ function renderChecklist(){
   document.getElementById("checklistBody").innerHTML =
     `<div class="check-progress">
        <div class="progressbar"><div style="width:${total?Math.round(done/total*100):0}%"></div></div>
-       <div class="check-meta"><b>${done} of ${total}</b> picked up · $${leftCost.toFixed(2)} left to spend · list total $${c.total.toFixed(2)} BBD
+       <div class="check-meta"><b>${done} of ${total}</b> picked up · $${leftCost.toFixed(2)} left to spend · priced total $${c.total.toFixed(2)} BBD${c.rows.some(r=>r.pantry)?" (seasonings priced in store)":""}
        ${signedIn?"":' · <span class="alt-cell">sign in to save this list</span>'}</div>
      </div>`+
     c.rows.map(r=>`
      <label class="check-row ${c.checked[r.id]?'done':''}">
        <input type="checkbox" ${c.checked[r.id]?"checked":""} onchange="toggleCheck('${r.id}')">
        <span class="ck-main"><b>${r.name}</b> — ${r.buy}
-         ${r.note?`<span class="${r.note.startsWith('Not stocked')?'alt-cell':'note-cell'}">${r.note}</span>`:""}</span>
+         ${r.note?`<span class="${r.pantry?'hint-cell':(r.note.startsWith('Not stocked')?'alt-cell':'note-cell')}">${r.note}</span>`:""}</span>
        <span class="ck-side">${r.store?`<span class="store-tag">${r.store}</span>`:""} ${r.price!=null?"$"+r.price.toFixed(2):""}</span>
      </label>`).join("");
 }

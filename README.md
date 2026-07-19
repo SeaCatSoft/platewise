@@ -19,6 +19,11 @@ optional Firebase accounts for cross-device sync.
   lowest total across stores or shop at one supermarket, with automatic
   alternatives ("Not stocked — suggested alternative…") or a
   "not found — please seek alternative" note
+- **Complete shopping list:** covers the plated foods *and* every ingredient
+  the recipe steps call for — onion, garlic, thyme, lime, scallion and
+  seasonings are aggregated across the whole plan and converted into pack
+  sizes ("36 cloves — about 4 bulbs"). Items the government survey doesn't
+  track are listed in a separate seasonings section, flagged to price in store
 - **Shopping checklist:** confirm the priced list and tick items off in the
   aisle, with a progress bar and a running "left to spend" total
 - **Accounts & progress:** sign in (Firebase) to sync your weight log and
@@ -69,6 +74,16 @@ local mode — nothing breaks.
 **Is the config safe to commit?** Yes — a Firebase web config is public by
 design (it identifies the project, it doesn't grant access). Security comes
 from the Firestore rules in step 5 and from Authentication itself.
+
+## Recipe ingredients & seasonings
+Each recipe declares an `extras` list alongside its steps. Two kinds:
+`X("onions",40)` adds grams of a **priced** food to the shopping totals, and
+`P("garlic",2)` adds units of a **pantry** item from the `PANTRY` catalogue
+(garlic, thyme, scallion, lime, Bajan green seasoning, pepper sauce, bay,
+cinnamon, salt, black pepper). Pantry entries define `per`/`pack` so totals
+convert into sensible purchases. To add an ingredient, extend `PANTRY` and
+reference it in the relevant recipe branch — the shopping list and checklist
+pick it up automatically.
 
 ## Updating prices
 All food and price data sits in one array in `index.html` (`FOODS`), built
