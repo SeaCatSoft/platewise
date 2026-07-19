@@ -140,6 +140,45 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
   header,.stepper,.nav-row,.week-tabs,.toolbar,button{display:none!important}
   body{background:#fff}.panel{box-shadow:none;border:none;padding:0}
 }
+/* ---------- top nav & auth ---------- */
+.topnav{display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap}
+.topnav button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted)}
+.topnav button.on{background:var(--deep);border-color:var(--deep);color:#fff}
+.topnav button.profile{background:var(--gold-soft);border-color:#edd9ae;color:#6b5210}
+.auth{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:16px}
+.auth-inner{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end}
+.auth input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px}
+.auth-actions{display:flex;gap:8px;flex-wrap:wrap}
+.auth-note{font-size:12px;color:var(--muted);margin-top:10px}
+.auth-msg{font-size:13px;font-weight:600;color:var(--coral);margin-top:8px;min-height:18px}
+.auth-msg.ok{color:var(--deep)}
+@media(max-width:720px){.auth-inner{grid-template-columns:1fr}}
+/* ---------- recipes ---------- */
+.r-title{font-family:var(--display);font-weight:600;font-size:13.5px;color:var(--deep);margin-top:2px}
+details.recipe{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#FAFBF8}
+details.recipe summary{cursor:pointer;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--deep);list-style:none}
+details.recipe summary::before{content:"▸ ";color:var(--gold)}
+details.recipe[open] summary::before{content:"▾ "}
+details.recipe ol{padding:2px 14px 12px 30px;font-size:13px;color:var(--ink)}
+details.recipe li{margin-bottom:5px}
+/* ---------- checklist ---------- */
+.check-progress{margin-bottom:16px}
+.progressbar{height:10px;background:var(--deep-soft);border-radius:999px;overflow:hidden}
+.progressbar div{height:100%;background:var(--gold);border-radius:999px;transition:width .25s}
+.check-meta{font-size:13px;color:var(--muted);margin-top:8px}
+.check-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;margin-bottom:9px;cursor:pointer;transition:.15s}
+.check-row input{width:20px;height:20px;accent-color:var(--deep);margin-top:2px;flex:none}
+.check-row .ck-main{flex:1;font-size:13.5px}
+.check-row .ck-main .alt-cell,.check-row .ck-main .note-cell{display:block;margin-top:3px}
+.check-row .ck-side{font-size:13px;font-weight:700;white-space:nowrap;display:flex;gap:8px;align-items:center}
+.check-row.done{opacity:.55;background:var(--deep-soft)}
+.check-row.done .ck-main b{text-decoration:line-through}
+/* ---------- progress ---------- */
+.chart-wrap{margin:16px 0 6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
+.chart-wrap svg{width:100%;height:auto;display:block}
+.del-btn{border:none;background:none;color:var(--coral);font-weight:700;font-size:14px;padding:4px 8px;border-radius:8px}
+.del-btn:hover{background:#fbeae6}
+
 </style>
 </head>
 <body>
@@ -150,10 +189,58 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
       <h1>PlateWise</h1>
       <span>Evidence-based meal plans &amp; smart shopping for Barbados</span>
     </div>
+    <div class="topnav">
+      <button id="navPlanner" class="on" onclick="goView('planner')">Planner</button>
+      <button id="navProgress" onclick="goView('progress')">My progress</button>
+      <button id="profileBtn" class="profile" onclick="toggleAuth()">Sign in</button>
+    </div>
+  </div>
+  <div class="auth hidden" id="authPanel">
+    <!-- CLOUD MODE (shown when a Firebase config is present) -->
+    <div id="authCloud" class="hidden">
+      <div class="auth-inner">
+        <div class="field">
+          <label>Email</label>
+          <input type="email" id="authEmail" autocomplete="username" placeholder="you@example.com">
+        </div>
+        <div class="field">
+          <label>Password <span class="hint">(6+ characters)</span></label>
+          <input type="password" id="authPass" autocomplete="current-password">
+        </div>
+        <div class="auth-actions">
+          <button class="btn btn-primary" onclick="cloudSignIn(false)">Sign in</button>
+          <button class="btn btn-secondary" onclick="cloudSignIn(true)">Create account</button>
+          <button class="btn-ghost" onclick="toggleAuth()">Close</button>
+          <button class="btn-ghost hidden" id="cloudSignOutBtn" onclick="doSignOut()">Sign out</button>
+        </div>
+      </div>
+      <p class="auth-msg" id="authMsg"></p>
+      <p class="auth-note">Accounts are handled by your Firebase project. Your weight log and shopping checklist sync to Firestore, so they follow you across devices.</p>
+    </div>
+    <!-- LOCAL MODE (no Firebase config yet) -->
+    <div id="authLocal">
+      <div class="auth-inner">
+        <div class="field" id="authExistingWrap">
+          <label>Choose a profile</label>
+          <select id="authExisting"></select>
+        </div>
+        <div class="field">
+          <label>Or create a new one <span class="hint">(just a name — no password)</span></label>
+          <input type="text" id="authNew" placeholder="e.g. Andre" maxlength="24">
+        </div>
+        <div class="auth-actions">
+          <button class="btn btn-primary" onclick="localSignIn()">Sign in</button>
+          <button class="btn btn-secondary" onclick="toggleAuth()">Close</button>
+          <button class="btn-ghost hidden" id="localSignOutBtn" onclick="doSignOut()">Sign out</button>
+        </div>
+      </div>
+      <p class="auth-note"><b>Local mode</b> — no Firebase config detected, so profiles live in this browser only. To enable real cloud accounts, paste your Firebase config into <code>index.html</code> (marked near the top of the script) — full steps in the README.</p>
+    </div>
   </div>
 </header>
 
 <main class="wrap">
+  <div id="view-planner">
   <nav class="stepper" id="stepper" aria-label="Progress"></nav>
 
   <!-- STEP 1: ABOUT YOU -->
@@ -229,7 +316,7 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
   <section class="panel hidden" id="step-4">
     <span class="eyebrow">Step 4</span>
     <h2>Foods you enjoy</h2>
-    <p class="lede">Your plan is built only from foods you tick. Use <b>Standard selection</b> for a balanced Bajan-friendly basket, then add or remove anything.</p>
+    <p class="lede">Your plan is built only from foods you tick. Use <b>Standard selection</b> for a balanced Bajan-friendly basket, then add or remove anything. Your eating style (vegan, keto, …) is chosen at the next step and filters these automatically.</p>
     <div class="toolbar">
       <button class="btn-ghost" onclick="applyStandard()">Standard selection</button>
       <button class="btn-ghost" onclick="selectAllFoods(true)">Select all</button>
@@ -246,7 +333,7 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
   <section class="panel hidden" id="step-5">
     <span class="eyebrow">Step 5</span>
     <h2>Shape your plan</h2>
-    <p class="lede">Choose the length of your plan and how many meals you eat each day. Fewer meals means bigger plates — total daily nutrition stays the same.</p>
+    <p class="lede">Choose the length, meals per day, and an eating style — for the whole plan, or a different style each week (e.g. one keto week, then Mediterranean).</p>
     <div class="grid cols-2">
       <div class="field">
         <label>Plan length</label>
@@ -265,14 +352,27 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
           <button data-v="3" class="on" type="button">3</button>
         </div>
       </div>
+      <div class="field">
+        <label>Eating style</label>
+        <select id="dietSel"></select>
+        <p class="hint" id="dietDesc" style="margin-top:6px"></p>
+      </div>
+      <div class="field">
+        <label>Apply the style to</label>
+        <div class="seg" id="dietModeSeg">
+          <button data-v="all" class="on" type="button">Whole plan</button>
+          <button data-v="weekly" type="button">Pick per week</button>
+        </div>
+      </div>
     </div>
+    <div class="grid cols-2 hidden" id="weekDietRows" style="margin-top:16px"></div>
     <div class="nav-row">
       <button class="btn btn-secondary" onclick="goStep(4)">Back</button>
       <button class="btn btn-gold" onclick="generatePlan()">Create my plan</button>
     </div>
   </section>
 
-  <!-- RESULTS -->
+  <!-- STEP 6: PLAN -->
   <section class="panel hidden" id="step-6">
     <span class="eyebrow">Your plan</span>
     <h2 id="planTitle">Your meal plan</h2>
@@ -281,18 +381,19 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
     <div class="targets" id="targetsBox"></div>
     <div class="week-tabs" id="weekTabs"></div>
     <div id="planBody"></div>
+    <p class="hint" style="margin-top:10px">Tap any meal's <b>Recipe</b> to open the full method. Pantry staples (salt, pepper, Bajan seasoning, garlic, thyme, lime) are assumed and aren't added to your shopping list.</p>
     <div class="nav-row">
       <button class="btn btn-secondary" onclick="goStep(5)">Adjust plan</button>
       <button class="btn btn-primary" onclick="buildShopping()">Build shopping list</button>
     </div>
   </section>
 
-  <!-- SHOPPING -->
+  <!-- STEP 7: SHOPPING -->
   <section class="panel hidden" id="step-7">
     <span class="eyebrow">Shopping</span>
-    <h2>Your shopping list</h2>
-    <p class="lede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. Choose the cheapest mix of stores, or shop at one supermarket.</p>
-    <div class="grid cols-2" style="margin-bottom:18px">
+    <h2 id="shopTitle">Your shopping list</h2>
+    <p class="lede" id="shopLede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. Confirm the list to turn it into a checklist you can tick off in the aisle.</p>
+    <div class="grid cols-2" id="priceControls" style="margin-bottom:18px">
       <div class="field">
         <label>Pricing mode</label>
         <div class="seg" id="priceModeSeg">
@@ -306,26 +407,53 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
       </div>
     </div>
     <div id="shoppingBody"></div>
-    <div class="notice"><b>Note:</b> Prices are from the official surveys of 5 Nov, 25 Nov and 12 Dec 2025 and may drift from today's shelf prices. Fresh-produce prices sold per piece were converted to per-kg using typical fruit weights; flying fish (5's) and sausage (10's) pack weights are estimates.</div>
-    <div class="nav-row">
+    <div id="checklistBody" class="hidden"></div>
+    <div class="notice" id="shopNotice"><b>Note:</b> Prices are from the official surveys of 5 Nov, 25 Nov and 12 Dec 2025 and may drift from today's shelf prices. Fresh-produce prices sold per piece were converted to per-kg using typical fruit weights; flying fish (5's) and sausage (10's) pack weights are estimates.</div>
+    <div class="nav-row" id="shopNavPrices">
       <button class="btn btn-secondary" onclick="goStep(6)">Back to plan</button>
-      <button class="btn btn-primary" onclick="window.print()">Print / save PDF</button>
+      <button class="btn btn-gold" onclick="confirmList()">Confirm list → start shopping</button>
+    </div>
+    <div class="nav-row hidden" id="shopNavChecklist">
+      <button class="btn btn-secondary" onclick="editList()">Edit list / prices</button>
+      <button class="btn btn-primary" onclick="goView('progress')">Go to my progress</button>
     </div>
   </section>
+  </div>
+
+  <!-- PROGRESS VIEW -->
+  <div id="view-progress" class="hidden">
+    <section class="panel">
+      <span class="eyebrow">My progress</span>
+      <h2 id="progTitle">Track your change</h2>
+      <p class="lede">Log your weight over time — losing fat or gaining muscle, the trend line tells the story. Weigh in at the same time of day (mornings work best) once or twice a week.</p>
+      <div id="progNeedAuth" class="notice hidden"><b>Sign in to save your log.</b> Create a profile (top right) and your entries and shopping checklist will be kept on this device.</div>
+      <div id="progInner">
+        <div class="grid cols-3" style="margin-bottom:14px">
+          <div class="field">
+            <label>Date</label>
+            <input type="date" id="logDate">
+          </div>
+          <div class="field">
+            <label>Weight <span class="hint">(kg)</span></label>
+            <input type="number" id="logWeight" min="30" max="300" step="0.1" placeholder="e.g. 82.4">
+          </div>
+          <div class="field">
+            <label>&nbsp;</label>
+            <button class="btn btn-primary" style="width:100%" onclick="addLog()">Add entry</button>
+          </div>
+        </div>
+        <div class="targets" id="progStats"></div>
+        <div class="chart-wrap" id="progChart"></div>
+        <div id="progList"></div>
+        <div id="progShopping"></div>
+      </div>
+    </section>
+  </div>
 </main>
 
 <footer class="wrap">PlateWise · General wellness guidance, not medical advice. If you have diabetes or a medical condition, review your plan with your doctor or dietitian.</footer>
+
 <script>
-/* =====================================================================
-   FOOD & PRICE DATABASE — built from the Government of Barbados price
-   survey (askdealia.gov.bb) supplied by the user. Latest readings per
-   store per product, surveys of 5 Nov / 25 Nov / 12 Dec 2025.
-   For each generic food, each store's entry is the cheapest matching
-   branded product by price-per-gram at that store:
-   prices = { "Store": { p: pack price BBD, g: pack grams, n: product } }
-   Omitted stores don't stock the item; the app suggests alternatives.
-   per100 = macros per 100 g. gi = glycaemic impact (low|med|high).
-   ===================================================================== */
 const STORES = ["Aone Supermarkets", "Channell Supermarkets", "Cherish Supermarket", "Eddies Supermarket", "Fair Deals Supermarkets", "Jordans Supermarkets", "Lionel C Hill Supermarket", "Massy Stores", "People's Market", "Popular Discount Supermarkets", "Price Lo", "Roxy Supermarket", "Savings Plus Supermarkets", "Trimart Supermarkets"];
 
 const FOODS = [
@@ -407,9 +535,159 @@ const GOALS = [
 ];
 
 /* =====================================================================
+   FOOD TYPES & EATING STYLES (DIETS)
+   ===================================================================== */
+const FOOD_TYPE = {
+  meat:["whole_chicken","chicken_stew","stew_beef","minced_beef","pork_chops","lamb_shoulder","corned_beef","chicken_sausage"],
+  fish:["flying_fish","salt_fish","tuna_water","sardines"],
+  egg:["eggs"],
+  dairy:["yogurt","cheddar","milk_2pct","whole_milk"]
+};
+FOODS.forEach(f=>{f.type="plant"; for(const t in FOOD_TYPE) if(FOOD_TYPE[t].includes(f.id)) f.type=t;});
+
+const DIETS = {
+  standard:     {name:"Standard",      ok:f=>true, desc:"No restrictions — the plan uses anything you've ticked."},
+  mediterranean:{name:"Mediterranean", ok:f=>f.type!=="meat", medFat:true,
+                 desc:"Fish, legumes, wholegrains and olive oil; no red or processed meat. Strongly supported for heart and blood-sugar health."},
+  pescatarian:  {name:"Pescatarian",   ok:f=>f.type!=="meat",
+                 desc:"Fish plus eggs and dairy — no meat."},
+  vegetarian:   {name:"Vegetarian",    ok:f=>f.type!=="meat"&&f.type!=="fish",
+                 desc:"No meat or fish; eggs and dairy allowed."},
+  vegan:        {name:"Vegan",         ok:f=>f.type==="plant",
+                 desc:"Plant foods only — protein comes from soya chunks, peas and peanut butter."},
+  keto:         {name:"Keto",          ok:f=>!["carb","fruit"].includes(f.role), keto:true,
+                 desc:"Very low carb (~25 g/day): no grains, breads, legumes or fruit — carbs land well under 50 g/day and fat fills the energy gap."}
+};
+const VEGAN_PROTEINS = ["soya_chunks","split_peas","pigeon_peas_dry","blackeye_peas","peanut_butter"];
+
+/* =====================================================================
+   FIREBASE CONFIG — PASTE YOURS HERE
+   Create a Firebase project, add a Web App, and copy its config object
+   over this placeholder (README has the full walkthrough). Until then
+   the app runs in local mode (browser-only profiles).
+   ===================================================================== */
+const FIREBASE_CONFIG = {
+  apiKey: "PASTE_YOUR_API_KEY",
+  authDomain: "your-project.firebaseapp.com",
+  projectId: "your-project",
+  storageBucket: "your-project.appspot.com",
+  messagingSenderId: "0",
+  appId: "PASTE_YOUR_APP_ID"
+};
+
+/* =====================================================================
+   ACCOUNT LAYER — cloud (Firebase) with local-mode fallback
+   ===================================================================== */
+const DB = {
+  mem:{},
+  get(k,d){ try{const v=localStorage.getItem(k); if(v!=null) return JSON.parse(v);}catch(e){}
+            return (k in this.mem)?this.mem[k]:d; },
+  set(k,v){ this.mem[k]=v; try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+};
+const Account = {
+  mode:"local", user:null, data:null,
+  blank(){ return {logs:[],shopping:null}; },
+  label(){ return this.user ? (this.mode==="cloud"?this.user.email:this.user.name) : null; },
+  async persist(){
+    if(!this.user||!this.data) return;
+    if(this.mode==="cloud"){
+      try{ await window.FB.save(this.user.uid,this.data); }
+      catch(e){ authMsg("Couldn't sync to Firebase: "+(e.message||e)); }
+    }else{
+      const p=DB.get("pw_profiles",{}); p[this.user.name]=this.data; DB.set("pw_profiles",p);
+      DB.set("pw_active",this.user.name);
+    }
+  }
+};
+/* shims used throughout the app */
+function me(){ return Account.user ? {name:Account.label(),data:Account.data} : null; }
+function saveMe(data){ Account.data=data; Account.persist(); }
+
+function authMsg(t,ok){ const el=document.getElementById("authMsg");
+  if(el){ el.textContent=t||""; el.classList.toggle("ok",!!ok); } }
+const FB_ERRORS={"auth/invalid-email":"That email doesn't look right.",
+ "auth/missing-password":"Enter a password.","auth/weak-password":"Password needs at least 6 characters.",
+ "auth/email-already-in-use":"An account already exists for that email — use Sign in.",
+ "auth/invalid-credential":"Wrong email or password.","auth/user-not-found":"No account for that email — use Create account.",
+ "auth/wrong-password":"Wrong email or password.","auth/too-many-requests":"Too many attempts — wait a minute and try again.",
+ "auth/network-request-failed":"Network problem — check your connection."};
+
+function toggleAuth(){ document.getElementById("authPanel").classList.toggle("hidden"); refreshAuthUI(); }
+function refreshAuthUI(){
+  const cloud=Account.mode==="cloud";
+  document.getElementById("authCloud").classList.toggle("hidden",!cloud);
+  document.getElementById("authLocal").classList.toggle("hidden",cloud);
+  document.getElementById("profileBtn").textContent = Account.user? ("👤 "+Account.label()) : "Sign in";
+  if(cloud){
+    document.getElementById("cloudSignOutBtn").classList.toggle("hidden",!Account.user);
+  }else{
+    const p=DB.get("pw_profiles",{}), names=Object.keys(p);
+    const sel=document.getElementById("authExisting");
+    sel.innerHTML = names.length? names.map(x=>`<option ${Account.user&&x===Account.user.name?"selected":""}>${x}</option>`).join("") : `<option value="">— none yet —</option>`;
+    document.getElementById("authExistingWrap").style.display = names.length?"block":"none";
+    document.getElementById("localSignOutBtn").classList.toggle("hidden",!Account.user);
+  }
+}
+/* ----- local mode ----- */
+function localSignIn(){
+  const newName=document.getElementById("authNew").value.trim();
+  let n=newName || document.getElementById("authExisting").value;
+  if(!n) return;
+  const p=DB.get("pw_profiles",{});
+  if(!p[n]) p[n]=Account.blank();
+  DB.set("pw_profiles",p); DB.set("pw_active",n);
+  Account.user={name:n}; Account.data=p[n];
+  document.getElementById("authNew").value="";
+  document.getElementById("authPanel").classList.add("hidden");
+  afterSignInRefresh();
+}
+/* ----- cloud mode ----- */
+async function cloudSignIn(create){
+  const e=document.getElementById("authEmail").value.trim(),
+        p=document.getElementById("authPass").value;
+  if(!e||!p){ authMsg("Enter your email and password."); return; }
+  authMsg(create?"Creating account…":"Signing in…",true);
+  try{ create? await window.FB.signUp(e,p) : await window.FB.signIn(e,p); }
+  catch(err){ authMsg(FB_ERRORS[err.code]||err.message||"Sign-in failed."); }
+}
+async function doSignOut(){
+  if(Account.mode==="cloud"){ try{await window.FB.signOut();}catch(e){} }
+  Account.user=null; Account.data=null;
+  DB.set("pw_active",null);
+  refreshAuthUI(); renderProgress();
+}
+function afterSignInRefresh(){
+  if(state.checklist && Account.data && !Account.data.shopping){   // adopt an unsaved session list
+    Account.data.shopping=state.checklist; Account.persist();
+  }
+  refreshAuthUI(); renderProgress(); restoreChecklistIfAny();
+}
+/* Firebase module (bottom of page) calls these */
+window.onFirebaseReady = ()=>{ Account.mode="cloud"; refreshAuthUI(); };
+window.onFirebaseAuth = async (u)=>{
+  if(u){
+    Account.mode="cloud"; Account.user=u;
+    try{ Account.data=(await window.FB.load(u.uid)) || Account.blank(); }
+    catch(e){ Account.data=Account.blank(); authMsg("Signed in, but couldn't load your data: "+(e.message||e)); return afterSignInRefresh(); }
+    authMsg("Signed in as "+u.email,true);
+    document.getElementById("authPanel").classList.add("hidden");
+    afterSignInRefresh();
+  }else if(Account.mode==="cloud"&&Account.user){
+    Account.user=null; Account.data=null;
+    refreshAuthUI(); renderProgress();
+  }
+};
+/* restore last local profile on load (cloud mode restores via onFirebaseAuth) */
+(function(){ const n=DB.get("pw_active",null);
+  if(n){ const p=DB.get("pw_profiles",{}); if(p[n]){ Account.user={name:n}; Account.data=p[n]; } } })();
+
+/* =====================================================================
    STATE & WIZARD
    ===================================================================== */
-const state = {sex:"male",bodyType:null,goal:null,liked:new Set(),weeks:2,mealsPerDay:3,plan:null,targets:null,priceMode:"cheapest",store:STORES[0]};
+const state = {sex:"male",bodyType:null,goal:null,liked:new Set(),weeks:2,mealsPerDay:3,
+               diet:"standard",dietMode:"all",weekDiets:["standard","standard","standard","standard"],
+               plan:null,targets:null,priceMode:"cheapest",store:STORES[0],
+               shopRows:null,checklist:null,view:"planner"};
 const STEPS = ["About you","Body type","Goal","Foods","Plan setup","Meal plan","Shopping"];
 let currentStep = 1;
 
@@ -421,14 +699,23 @@ function renderStepper(){
   }).join("");
 }
 function goStep(n){
-  if(n>=6 && !state.plan){ return; }
-  document.querySelectorAll("section.panel").forEach(p=>p.classList.add("hidden"));
+  if(n>=6 && !state.plan) return;
+  goView("planner");
+  document.querySelectorAll("#view-planner section.panel").forEach(p=>p.classList.add("hidden"));
   document.getElementById("step-"+n).classList.remove("hidden");
   currentStep=n; renderStepper();
   window.scrollTo({top:0,behavior:"smooth"});
 }
+function goView(v){
+  state.view=v;
+  document.getElementById("view-planner").classList.toggle("hidden",v!=="planner");
+  document.getElementById("view-progress").classList.toggle("hidden",v!=="progress");
+  document.getElementById("navPlanner").classList.toggle("on",v==="planner");
+  document.getElementById("navProgress").classList.toggle("on",v==="progress");
+  if(v==="progress") renderProgress();
+  window.scrollTo({top:0,behavior:"smooth"});
+}
 
-/* segmented controls */
 function wireSeg(id,cb){
   const seg=document.getElementById(id);
   seg.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>{
@@ -437,8 +724,36 @@ function wireSeg(id,cb){
   }));
 }
 wireSeg("sexSeg",v=>{state.sex=v;state.bodyType=null;renderBodyTypes();document.getElementById("btnStep2").disabled=true;});
-wireSeg("weeksSeg",v=>state.weeks=+v);
+wireSeg("weeksSeg",v=>{state.weeks=+v; renderWeekDietRows();});
 wireSeg("mealsSeg",v=>state.mealsPerDay=+v);
+wireSeg("dietModeSeg",v=>{state.dietMode=v; renderWeekDietRows();});
+
+/* diet selectors */
+const dietOptions=sel=>Object.keys(DIETS).map(k=>`<option value="${k}" ${k===sel?"selected":""}>${DIETS[k].name}</option>`).join("");
+function renderDietUI(){
+  const sel=document.getElementById("dietSel");
+  sel.innerHTML=dietOptions(state.diet);
+  sel.onchange=e=>{state.diet=e.target.value;
+    document.getElementById("dietDesc").textContent=DIETS[state.diet].desc;
+    renderWeekDietRows();};
+  document.getElementById("dietDesc").textContent=DIETS[state.diet].desc;
+  renderWeekDietRows();
+}
+function renderWeekDietRows(){
+  const box=document.getElementById("weekDietRows");
+  const weekly = state.dietMode==="weekly";
+  box.classList.toggle("hidden",!weekly);
+  if(!weekly) return;
+  box.innerHTML="";
+  for(let w=0;w<state.weeks;w++){
+    if(state.weekDiets[w]==null) state.weekDiets[w]=state.diet;
+    const d=document.createElement("div"); d.className="field";
+    d.innerHTML=`<label>Week ${w+1} style</label><select data-w="${w}">${dietOptions(state.weekDiets[w])}</select>`;
+    d.querySelector("select").onchange=e=>state.weekDiets[+e.target.dataset.w]=e.target.value;
+    box.appendChild(d);
+  }
+}
+const dietForWeek=w=> state.dietMode==="weekly" ? (state.weekDiets[w]||state.diet) : state.diet;
 
 /* body types */
 function renderBodyTypes(){
@@ -498,72 +813,125 @@ function calcTargets(){
   const tdee = bmr*act;
   const goal = GOALS.find(g=>g.id===state.goal);
   let kcal = goal.kcal(tdee);
-  kcal = Math.max(kcal, state.sex==="male"?1500:1200);        // safe floor
+  kcal = Math.max(kcal, state.sex==="male"?1500:1200);          // safe floor
   const bf = BF_MID[state.bodyType][state.sex];
-  const refW = bf>=30 ? Math.min(w,gw) : w;                    // adjusted ref weight at high BF%
+  const refW = bf>=30 ? Math.min(w,gw) : w;                      // adjusted ref weight at high BF%
   let protein = goal.protein*refW;
-  protein = Math.min(protein, kcal*0.40/4);                    // cap protein at 40% kcal
+  protein = Math.min(protein, kcal*0.40/4);                      // cap protein at 40% kcal
   let fat = goal.fatPct*kcal/9;
   let carbs = (kcal - protein*4 - fat*9)/4;
-  if(goal.carbCap && carbs*4 > kcal*goal.carbCap){             // blood-sugar carb cap
+  if(goal.carbCap && carbs*4 > kcal*goal.carbCap){               // blood-sugar carb cap
     carbs = kcal*goal.carbCap/4;
     fat   = (kcal - protein*4 - carbs*4)/9;
   }
   return {kcal:Math.round(kcal),protein:Math.round(protein),carbs:Math.round(carbs),fat:Math.round(fat),
           tdee:Math.round(tdee),bf,w,gw,goal};
 }
+/* weekly targets: keto weeks override the macro split */
+function targetsForDiet(base,diet){
+  if(!DIETS[diet].keto) return base;
+  const carbs=30, protein=Math.min(base.protein, base.kcal*0.35/4);
+  const fat=Math.round((base.kcal - protein*4 - carbs*4)/9);
+  return {...base, protein:Math.round(protein), carbs, fat, keto:true};
+}
 
 const macroOf=(f,g)=>({k:f.per100.k*g/100,p:f.per100.p*g/100,c:f.per100.c*g/100,f:f.per100.f*g/100,fib:f.per100.fib*g/100});
 const clamp=(v,lo,hi)=>Math.max(lo,Math.min(hi,v));
 const round5=g=>Math.round(g/5)*5;
 
-function pickPool(role,lowGI){
-  let pool=FOODS.filter(f=>f.role===role && state.liked.has(f.id));
-  if(!pool.length) pool=FOODS.filter(f=>f.role===role);        // fall back so a plan always builds
+function pickPool(role,lowGI,diet){
+  const D=DIETS[diet], dok=f=>D.ok(f);
+  let pool=FOODS.filter(f=>f.role===role && state.liked.has(f.id) && dok(f));
+  if(diet==="vegan" && role==="protein"){
+    const extra=FOODS.filter(f=>VEGAN_PROTEINS.includes(f.id) && dok(f));
+    const ids=new Set(pool.map(f=>f.id));
+    extra.forEach(f=>{if(!ids.has(f.id)) pool.push(f);});
+  }
+  if(!pool.length) pool=FOODS.filter(f=>f.role===role && dok(f));   // ignore likes before diet
+  if(!pool.length) pool=FOODS.filter(f=>f.role===role);             // last resort
+  if(D.keto){
+    if(role==="protein") pool=pool.filter(f=>f.per100.c<=5) .length? pool.filter(f=>f.per100.c<=5):pool;
+    if(role==="fat"){const lc=pool.filter(f=>f.per100.c<=12); if(lc.length) pool=lc;}
+    if(role==="veg"){const lv=pool.filter(f=>f.per100.c<=7); if(lv.length) pool=lv;
+      else {const lv2=pool.filter(f=>f.id!=="canned_corn"); if(lv2.length) pool=lv2;}}
+  }
+  if(D.medFat && role==="fat"){
+    const med=pool.filter(f=>["olive_oil","veg_oil","peanut_butter"].includes(f.id));
+    if(med.length) pool=med;
+  }
   if(lowGI){
     const low=pool.filter(f=>f.gi==="low");
-    if(low.length) pool=low; else {const med=pool.filter(f=>f.gi!=="high"); if(med.length) pool=med;}
+    if(low.length) pool=low; else {const m=pool.filter(f=>f.gi!=="high"); if(m.length) pool=m;}
   }
   return pool;
 }
 
 /* Build one meal scaled to per-meal macro targets */
-function buildMeal(name,t,dayIx,mealIx,lowGI,isBreakfast){
+function buildMeal(name,t,dayIx,mealIx,lowGI,isBreakfast,diet){
+  const D=DIETS[diet];
   const rot=(pool,salt)=>pool[(dayIx*3+mealIx+salt)%pool.length];
-  let pPool=pickPool("protein",false), cPool=pickPool("carb",lowGI),
-      vPool=pickPool("veg",false), fPool=pickPool("fat",false), frPool=pickPool("fruit",lowGI);
+  let pPool=pickPool("protein",false,diet), fPool=pickPool("fat",false,diet),
+      vPool=pickPool("veg",false,diet);
+  const items=[];
+  const sum=()=>items.reduce((s,[f,g])=>{const m=macroOf(f,g);
+    return {k:s.k+m.k,p:s.p+m.p,c:s.c+m.c,f:s.f+m.f,fib:s.fib+m.fib}},{k:0,p:0,c:0,f:0,fib:0});
+
+  if(D.keto){
+    if(isBreakfast){const bp=pPool.filter(f=>["eggs","sardines","cheddar"].includes(f.id)); if(bp.length)pPool=bp;}
+    const P=rot(pPool,0), V=rot(vPool,3), F=rot(fPool,2);
+    let gP=clamp(round5((t.p*0.9)/(P.per100.p/100)),40,450); items.push([P,gP]);
+    items.push([V,150]);
+    let accF=items.reduce((s,[f,g])=>s+macroOf(f,g).f,0);
+    let gF=clamp(round5(Math.max(0,(t.f-accF))/(F.per100.f/100)),10,200); items.push([F,gF]);
+    let tot=sum(); const short=t.k-tot.k;
+    if(short>t.k*0.05){
+      const fi=items.length-1, pi=0;
+      items[fi][1]=clamp(round5(items[fi][1]+short*0.6/(F.per100.k/100)),10,250);
+      items[pi][1]=clamp(round5(items[pi][1]+short*0.4/(P.per100.k/100)),40,550);
+      tot=sum();
+    }
+    const over=tot.k-t.k;
+    if(over>t.k*0.08){
+      const fi=items.length-1;
+      items[fi][1]=clamp(round5(items[fi][1]-over/(F.per100.k/100)),10,250);
+      tot=sum();
+    }
+    return {name,items,tot,diet};
+  }
+
+  let cPool=pickPool("carb",lowGI,diet), frPool=pickPool("fruit",lowGI,diet);
   if(isBreakfast){
-    const bp=pPool.filter(f=>["eggs","yogurt","sardines"].includes(f.id)); if(bp.length)pPool=bp;
+    const bp=pPool.filter(f=>["eggs","yogurt","sardines","soya_chunks","peanut_butter"].includes(f.id)); if(bp.length)pPool=bp;
     const bc=cPool.filter(f=>["oats","ww_bread","cream_wheat","cornflakes"].includes(f.id)); if(bc.length)cPool=bc;
   }
-  const P=rot(pPool,0), C=rot(cPool,1), F=rot(fPool,2);
+  const P=rot(pPool,0);
+  const LEGUMES=["split_peas","pigeon_peas_dry","blackeye_peas","pigeon_peas_can"];
+  if(LEGUMES.includes(P.id)){
+    const nonLeg=cPool.filter(f=>!LEGUMES.includes(f.id));
+    if(nonLeg.length) cPool=nonLeg; else cPool=cPool.filter(f=>f.id!==P.id).length?cPool.filter(f=>f.id!==P.id):cPool;
+  }
+  const C=rot(cPool,1), F=rot(fPool,2);
   const V=!isBreakfast?rot(vPool,3):null;
   const FR=(isBreakfast||state.mealsPerDay<3)?rot(frPool,4):null;
 
-  const items=[];
-  // 1) protein source covers ~75% of the meal's protein
-  let gP=clamp(round5((t.p*0.75)/(P.per100.p/100)),40,400); items.push([P,gP]);
-  // 2) fixed veg + optional fruit portions
-  if(V){const gV=150;items.push([V,gV]);}
-  if(FR){const gF=isBreakfast?100:120;items.push([FR,gF]);}
-  // 3) carbs to fill remaining carb target
+  let gP=clamp(round5((t.p*0.75)/(P.per100.p/100)),40,400);
+  gP=Math.max(40, Math.min(gP, round5(t.k*0.6/(P.per100.k/100))));   // protein slot ≤60% of meal kcal
+  items.push([P,gP]);
+  if(V) items.push([V,150]);
+  if(FR) items.push([FR,isBreakfast?100:120]);
   let acc=items.reduce((s,[f,g])=>{const m=macroOf(f,g);s.c+=m.c;return s},{c:0});
   let gC=clamp(round5(Math.max(0,(t.c-acc.c))/(C.per100.c/100)),25,450); items.push([C,gC]);
-  // 4) fats to fill remaining fat
   let accF=items.reduce((s,[f,g])=>s+macroOf(f,g).f,0);
   let gFat=clamp(round5(Math.max(0,(t.f-accF))/(F.per100.f/100)),5,120); items.push([F,gFat]);
 
-  const sum=()=>items.reduce((s,[f,g])=>{const m=macroOf(f,g);
-    return {k:s.k+m.k,p:s.p+m.p,c:s.c+m.c,f:s.f+m.f,fib:s.fib+m.fib}},{k:0,p:0,c:0,f:0,fib:0});
   let tot=sum();
-  // top-up pass: if the meal lands >5% under its calorie target, grow the carb & fat portions
   const short=t.k-tot.k;
   if(short>t.k*0.05){
     const ci=items.findIndex(([f])=>f===C), fi=items.findIndex(([f])=>f===F);
     items[ci][1]=clamp(round5(items[ci][1]+ short*0.6/(C.per100.k/100)),25,650);
     items[fi][1]=clamp(round5(items[fi][1]+ short*0.4/(F.per100.k/100)),5,180);
     tot=sum();
-    const still=t.k-tot.k;                                     // second round for big single meals
+    const still=t.k-tot.k;
     if(still>t.k*0.05){
       const pi=items.findIndex(([f])=>f===P);
       items[ci][1]=clamp(round5(items[ci][1]+ still*0.7/(C.per100.k/100)),25,900);
@@ -571,7 +939,14 @@ function buildMeal(name,t,dayIx,mealIx,lowGI,isBreakfast){
       tot=sum();
     }
   }
-  return {name,items,tot};
+  const over=tot.k-t.k;                                        // shrink pass if >8% over
+  if(over>t.k*0.08){
+    const ci=items.findIndex(([f])=>f===C), fi=items.findIndex(([f])=>f===F);
+    items[fi][1]=clamp(round5(items[fi][1]- over*0.5/(F.per100.k/100)),5,180);
+    items[ci][1]=clamp(round5(items[ci][1]- over*0.5/(C.per100.k/100)),25,900);
+    tot=sum();
+  }
+  return {name,items,tot,diet};
 }
 
 const MEAL_NAMES={1:["Main meal"],2:["Brunch","Dinner"],3:["Breakfast","Lunch","Dinner"]};
@@ -580,20 +955,178 @@ function generatePlan(){
   if(!state.liked.size) applyStandard();
   const T=calcTargets(); state.targets=T;
   const lowGI=!!T.goal.lowGI, n=state.mealsPerDay;
-  const perMeal={k:T.kcal/n,p:T.protein/n,c:T.carbs/n,f:T.fat/n};
   const weeks=[];
   for(let w=0;w<state.weeks;w++){
+    const diet=dietForWeek(w);
+    const WT=targetsForDiet(T,diet);
+    const perMeal={k:WT.kcal/n,p:WT.protein/n,c:WT.carbs/n,f:WT.f??WT.fat/n};
+    perMeal.f=WT.fat/n;
     const days=[];
     for(let d=0;d<7;d++){
       const ix=w*7+d;
-      const meals=MEAL_NAMES[n].map((nm,mi)=>buildMeal(nm,perMeal,ix,mi,lowGI,n===3&&mi===0));
+      const meals=MEAL_NAMES[n].map((nm,mi)=>buildMeal(nm,perMeal,ix,mi,lowGI&&!DIETS[diet].keto,n===3&&mi===0,diet));
       const dayTot=meals.reduce((s,m)=>({k:s.k+m.tot.k,p:s.p+m.tot.p,c:s.c+m.tot.c,f:s.f+m.tot.f,fib:s.fib+m.tot.fib}),{k:0,p:0,c:0,f:0,fib:0});
       days.push({meals,dayTot});
     }
-    weeks.push(days);
+    weeks.push({days,diet,targets:WT});
   }
-  state.plan=weeks;
+  state.plan=weeks; state.checklist=null; state.shopRows=null;
   renderPlan(); goStep(6);
+}
+
+/* =====================================================================
+   RECIPE ENGINE — turns each generated meal into a full recipe
+   ===================================================================== */
+const nice={
+  eggs:(g)=>`${Math.max(1,Math.round(g/60))} egg${g>=90?"s":""} (~${g} g)`,
+  veg_oil:(g)=>`${Math.max(1,Math.round(g/13.5))} tbsp oil (${g} g)`,
+  olive_oil:(g)=>`${Math.max(1,Math.round(g/13.5))} tbsp olive oil (${g} g)`,
+  peanut_butter:(g)=>`${Math.max(1,Math.round(g/16))} tbsp peanut butter (${g} g)`,
+  margarine:(g)=>`${Math.max(1,Math.round(g/14))} tbsp margarine (${g} g)`,
+  milk_2pct:(g)=>`${g} ml low-fat milk`,
+  whole_milk:(g)=>`${g} ml whole milk`,
+};
+const amt=(f,g)=> nice[f.id]? nice[f.id](g) : `${g} g ${f.name.toLowerCase()}`;
+const byRole=(m,r)=>m.items.find(([f])=>f.role===r);
+const hasId=(m,...ids)=>m.items.some(([f])=>ids.includes(f.id));
+const RAW_PROTEIN_STEP={
+  fish:"Season with salt, pepper, lime and Bajan seasoning; rest 10 min.",
+  meat:"Season generously with Bajan green seasoning, salt and pepper; rest 10–15 min.",
+  plant:"If using soya chunks, soak in hot salted water 10 min and squeeze dry."
+};
+
+function recipeFor(m,isBreakfast){
+  const p=byRole(m,"protein"), c=byRole(m,"carb"), v=byRole(m,"veg"),
+        f=byRole(m,"fat"), fr=byRole(m,"fruit");
+  const A=x=>amt(x[0],x[1]);
+  const pMain = p || m.items[0];                 // vegan meals may lead with a legume
+  const pn = pMain[0];
+
+  // ---- breakfast patterns ----
+  if(c && ["oats","cream_wheat"].includes(c[0].id)){
+    const liquid=f&&["milk_2pct","whole_milk"].includes(f[0].id)?A(f):"water (or milk)";
+    return {title:`Creamy ${c[0].id==="oats"?"oat":"cream-of-wheat"} porridge`,time:"10 min",steps:[
+      `Bring ${liquid} plus a pinch of salt to a simmer.`,
+      `Stir in ${A(c)}; cook 4–6 min, stirring, until thick. Add cinnamon or nutmeg to taste.`,
+      p?`Serve with ${A(pMain)} on the side (eggs soft-boiled or scrambled; yogurt spooned over).`:null,
+      fr?`Top with ${A(fr)}, sliced.`:null,
+      f&&!["milk_2pct","whole_milk"].includes(f[0].id)?`Finish with ${A(f)} swirled through.`:null
+    ].filter(Boolean)};
+  }
+  if(c && c[0].id==="cornflakes"){
+    return {title:"Cornflakes & fruit bowl",time:"5 min",steps:[
+      `Pour ${A(c)} into a bowl${f?` and add ${A(f)}`:""}.`,
+      fr?`Slice ${A(fr)} over the top.`:null,
+      p?`Have ${A(pMain)} alongside for protein.`:null
+    ].filter(Boolean)};
+  }
+  if(pn&&pn.id==="eggs"&&isBreakfast){
+    return {title:c&&["ww_bread","salt_bread"].includes(c[0].id)?"Scrambled eggs on toast":"Herb omelette",time:"10 min",steps:[
+      `Whisk ${A(pMain)} with salt, pepper and chopped herbs or scallion.`,
+      `Heat ${f?A(f):"a little oil"} in a non-stick pan on medium.`,
+      `Pour in eggs; stir gently until softly set (about 2 min).`,
+      c?`Serve on ${A(c)}, toasted.`:`Fold and slide onto a plate.`,
+      fr?`Finish with ${A(fr)} on the side.`:null,
+      v?`Add ${A(v)}, quickly sautéed, over the top.`:null
+    ].filter(Boolean)};
+  }
+  if(pn&&pn.id==="yogurt"&&isBreakfast){
+    return {title:"Yogurt, fruit & crunch bowl",time:"5 min",steps:[
+      `Spoon ${A(pMain)} into a bowl.`,
+      fr?`Top with ${A(fr)}, chopped.`:null,
+      c?`Add ${A(c)} for crunch.`:null,
+      f?`Finish with ${A(f)}.`:null
+    ].filter(Boolean)};
+  }
+
+  // ---- keto plate (no carb item) ----
+  if(m.diet==="keto"||!c){
+    return {title:`Keto plate: ${pn.name.toLowerCase()} with buttery ${v?v[0].name.toLowerCase():"greens"}`,time:"25 min",steps:[
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Pan-sear or grill ${A(pMain)} until cooked through (fish 3–4 min/side; chicken or meat to 74 °C).`,
+      v?`Steam ${A(v)} until just tender, then toss with ${f?A(f):"a knob of margarine"} , salt and pepper.`:null,
+      `Plate the protein over the vegetables; squeeze lime over and rest 2 min before eating.`,
+      `Keto note: no rice, bread or peas with this meal — the fat is doing the fuelling.`
+    ].filter(Boolean)};
+  }
+
+  // ---- lunch / dinner patterns ----
+  if(hasId(m,"tuna_water","sardines") && ["ww_bread","salt_bread"].includes(c[0].id)){
+    return {title:`${pn.name.replace(/ \(.*\)/,"")} salad ${c[0].id==="salt_bread"?"salt-bread cutters":"sandwiches"}`,time:"10 min",steps:[
+      `Drain ${A(pMain)} and flake into a bowl.`,
+      `Mix with finely chopped onion or sweet pepper, a squeeze of lime, black pepper${f?` and ${A(f)}`:""}.`,
+      v?`Fold through ${A(v)}, shredded or sliced thin.`:null,
+      `Pile into ${A(c)}${c[0].id==="salt_bread"?" — classic Bajan cutters":""}.`,
+      fr?`Serve with ${A(fr)} on the side.`:null
+    ].filter(Boolean)};
+  }
+  const LEG=["split_peas","pigeon_peas_dry","blackeye_peas","pigeon_peas_can"];
+  if(LEG.includes(pn.id)){
+    const canned=pn.id==="pigeon_peas_can";
+    return {title:`Stewed ${pn.name.replace(/ \(.*\)/,"").toLowerCase()} bowl`,time:canned?"25 min":"55 min (plus soak)",steps:[
+      canned?`Rinse and drain ${A(pMain)}.`:`Soak ${A(pMain)} 1 hr (or overnight); drain.`,
+      `Sauté chopped onion, garlic and thyme in ${f?A(f):"1 tbsp oil"}; add the peas${canned?"":" and cover with water"}.`,
+      canned?`Simmer 10–15 min with a bay leaf; season with salt and pepper sauce.`:`Simmer 35–45 min until tender; season near the end.`,
+      c?`Serve over ${A(c)}, cooked per pack.`:null,
+      v?`Steam ${A(v)} alongside.`:null,
+      `A squeeze of lime lifts the whole bowl.`
+    ].filter(Boolean)};
+  }
+  if(LEG.includes(c[0].id)){
+    const canned=c[0].id==="pigeon_peas_can";
+    return {title:`${pn.name.replace(/ \(.*\)/,"")} with stewed peas`,time:canned?"30 min":"55 min (plus soak)",steps:[
+      canned?`Rinse and drain ${A(c)}.`:`Soak ${A(c)} 1 hr (or overnight); drain.`,
+      `Sauté chopped onion, garlic and thyme in ${f?A(f):"1 tbsp oil"}; add the peas${canned?"":" and cover with water"}.`,
+      canned?`Simmer 10 min with a bay leaf and a little salt.`:`Simmer 35–45 min until tender, topping up water as needed; season near the end.`,
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Grill, pan-fry or stew ${A(pMain)} until done, and serve over the peas.`,
+      v?`Steam ${A(v)} alongside.`:null
+    ].filter(Boolean)};
+  }
+  if(["white_rice","parboiled_rice","brown_rice"].includes(c[0].id)){
+    return {title:`Bajan-style ${pn.name.replace(/ \(.*\)/,"").toLowerCase()} with ${c[0].name.toLowerCase()}`,time:"40 min",steps:[
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Rinse ${A(c)}; cook in salted water (about 2:1 water to rice) until tender — brown rice takes ~35 min, white/parboiled ~15–20.`,
+      `Brown ${A(pMain)} in ${f?A(f):"1 tbsp oil"} on medium-high, then lower the heat, splash in water, cover and cook through (stew cuts: simmer 25–35 min until tender).`,
+      v?`Add ${A(v)} to the pot for the last 5 minutes, or steam separately.`:null,
+      `Taste, adjust salt and pepper sauce, and serve the protein and gravy over the rice.`
+    ].filter(Boolean)};
+  }
+  if(c[0].id==="macaroni"){
+    return {title:`One-pot ${pn.name.replace(/ \(.*\)/,"").toLowerCase()} macaroni`,time:"30 min",steps:[
+      `Boil ${A(c)} in salted water until just al dente; drain, saving a cup of the water.`,
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Cook ${A(pMain)} in ${f?A(f):"1 tbsp oil"} with onion, garlic and a little tomato or pepper sauce.`,
+      v?`Stir in ${A(v)}, chopped, for the last few minutes.`:null,
+      `Toss the macaroni through with a splash of the pasta water; season and serve hot.`
+    ].filter(Boolean)};
+  }
+  if(c[0].id==="potatoes"){
+    return {title:`${pn.name.replace(/ \(.*\)/,"")} with boiled potatoes & ${v?v[0].name.toLowerCase():"veg"}`,time:"35 min",steps:[
+      `Scrub and halve ${A(c)}; boil in salted water 15–20 min until fork-tender.`,
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Grill or pan-fry ${A(pMain)} in ${f?A(f):"1 tbsp oil"} until cooked through.`,
+      v?`Steam ${A(v)} until bright and tender.`:null,
+      `Season the potatoes with pepper and a little of the pan juices, and plate everything together with lime wedges.`
+    ].filter(Boolean)};
+  }
+  if(["ww_bread","salt_bread"].includes(c[0].id)){
+    return {title:`${pn.name.replace(/ \(.*\)/,"")} ${c[0].id==="salt_bread"?"cutters":"sandwiches"}`,time:"15 min",steps:[
+      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+      `Cook ${A(pMain)} (pan-fry, grill, or scramble) and season well.`,
+      v?`Layer with ${A(v)}, sliced.`:null,
+      `Fill ${A(c)}${f?`, spread with ${A(f)}`:""}, press and serve.`,
+      fr?`Add ${A(fr)} on the side.`:null
+    ].filter(Boolean)};
+  }
+  // fallback
+  return {title:`${pn.name.replace(/ \(.*\)/,"")} plate`,time:"30 min",steps:[
+    RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
+    `Cook ${A(pMain)} through in ${f?A(f):"a little oil"}.`,
+    `Prepare ${A(c)} according to the pack.`,
+    v?`Steam ${A(v)}.`:null,
+    `Season everything and serve together.`
+  ].filter(Boolean)};
 }
 
 /* =====================================================================
@@ -614,37 +1147,46 @@ function ringSVG(label,grams,pct,color){
 
 function renderPlan(){
   const T=state.targets,g=T.goal;
-  document.getElementById("planTitle").textContent=`${g.name} — ${state.weeks} week${state.weeks>1?'s':''}, ${state.mealsPerDay} meal${state.mealsPerDay>1?'s':''}/day`;
+  activeWeek=Math.min(activeWeek,state.plan.length-1);
+  const wkObj=state.plan[activeWeek], WT=wkObj.targets, dietName=DIETS[wkObj.diet].name;
+  const dietLabel = state.dietMode==="weekly" ? "mixed styles by week" : DIETS[state.diet].name;
+  document.getElementById("planTitle").textContent=`${g.name} — ${state.weeks} week${state.weeks>1?'s':''}, ${state.mealsPerDay} meal${state.mealsPerDay>1?'s':''}/day · ${dietLabel}`;
   document.getElementById("planSubtitle").textContent=
-    `Maintenance ≈ ${T.tdee} kcal · plan target ${T.kcal} kcal/day · est. body fat ~${T.bf}% · ${T.w} kg → goal ${T.gw} kg.`+
-    (g.lowGI?" Carbs are capped and steered toward low-GI, high-fibre foods.":"");
-  const pk=T.protein*4/T.kcal, ck=T.carbs*4/T.kcal, fk=T.fat*9/T.kcal;
+    `Maintenance ≈ ${T.tdee} kcal · est. body fat ~${T.bf}% · ${T.w} kg → goal ${T.gw} kg.`+
+    (g.lowGI?" Carbs are steered toward low-GI, high-fibre foods.":"");
+  const pk=WT.protein*4/WT.kcal, ck=WT.carbs*4/WT.kcal, fk=WT.fat*9/WT.kcal;
   document.getElementById("ringsBox").innerHTML =
-    ringSVG("protein",T.protein,pk,"var(--deep)")+ringSVG("carbs",T.carbs,ck,"var(--gold)")+ringSVG("fat",T.fat,fk,"var(--coral)");
+    ringSVG("protein",WT.protein,pk,"var(--deep)")+ringSVG("carbs",WT.carbs,ck,"var(--gold)")+ringSVG("fat",WT.fat,fk,"var(--coral)");
   document.getElementById("targetsBox").innerHTML =
-    `<div class="target"><div class="num">${T.kcal}</div><div class="lbl">kcal / day</div></div>
-     <div class="target"><div class="num">${T.protein} g</div><div class="lbl">protein / day</div></div>
-     <div class="target"><div class="num">${T.carbs} g</div><div class="lbl">carbs / day</div></div>
-     <div class="target"><div class="num">${T.fat} g</div><div class="lbl">fat / day</div></div>`;
-  document.getElementById("weekTabs").innerHTML = state.plan.map((_,i)=>
-    `<button type="button" class="${i===activeWeek?'on':''}" onclick="activeWeek=${i};renderPlan()">Week ${i+1}</button>`).join("");
-  const wk=state.plan[Math.min(activeWeek,state.plan.length-1)];
+    `<div class="target"><div class="num">${WT.kcal}</div><div class="lbl">kcal / day (wk ${activeWeek+1})</div></div>
+     <div class="target"><div class="num">${WT.protein} g</div><div class="lbl">protein / day</div></div>
+     <div class="target"><div class="num">${WT.carbs} g</div><div class="lbl">carbs / day</div></div>
+     <div class="target"><div class="num">${WT.fat} g</div><div class="lbl">fat / day</div></div>`;
+  document.getElementById("weekTabs").innerHTML = state.plan.map((wk,i)=>
+    `<button type="button" class="${i===activeWeek?'on':''}" onclick="activeWeek=${i};renderPlan()">Week ${i+1} · ${DIETS[wk.diet].name}</button>`).join("");
+  const wk=wkObj.days;
   const wkTot=wk.reduce((s,d)=>({k:s.k+d.dayTot.k,p:s.p+d.dayTot.p,c:s.c+d.dayTot.c,f:s.f+d.dayTot.f,fib:s.fib+d.dayTot.fib}),{k:0,p:0,c:0,f:0,fib:0});
   const DN=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
   document.getElementById("planBody").innerHTML =
-    `<div class="week-summary"><b>Week ${activeWeek+1} totals:</b> ${macroStr(wkTot)} · fibre ${fmt(wkTot.fib)}g
-      &nbsp;|&nbsp; daily average ${macroStr({k:wkTot.k/7,p:wkTot.p/7,c:wkTot.c/7,f:wkTot.f/7})}</div>`+
+    `<div class="week-summary"><b>Week ${activeWeek+1} (${dietName}) totals:</b> ${macroStr(wkTot)} · fibre ${fmt(wkTot.fib)}g
+      &nbsp;|&nbsp; daily average ${macroStr({k:wkTot.k/7,p:wkTot.p/7,c:wkTot.c/7,f:wkTot.f/7})}${DIETS[wkObj.diet].keto?" &nbsp;|&nbsp; keto week: carbs held near 50 g/day":""}</div>`+
     wk.map((d,di)=>`<div class="day-card">
       <div class="day-head"><b>${DN[di]}</b><span class="macros">${macroStr(d.dayTot)} · fibre ${fmt(d.dayTot.fib)}g</span></div>
-      ${d.meals.map(m=>`<div class="meal">
-        <div class="m-name">${m.name}</div>
-        <div class="m-items">${m.items.map(([f,g])=>`${g} g ${f.name}`).join(" · ")}</div>
-        <div class="m-macros">${macroStr(m.tot)}</div></div>`).join("")}
+      ${d.meals.map((m,mi)=>{
+        const r=recipeFor(m, state.mealsPerDay===3&&mi===0);
+        return `<div class="meal">
+        <div class="m-name">${m.name}<div class="r-title">${r.title}</div></div>
+        <div class="m-items">${m.items.map(([f,g])=>`${g} g ${f.name}`).join(" · ")}
+          <details class="recipe"><summary>Recipe · ${r.time}</summary>
+            <ol>${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+          </details>
+        </div>
+        <div class="m-macros">${macroStr(m.tot)}</div></div>`;}).join("")}
     </div>`).join("");
 }
 
 /* =====================================================================
-   SHOPPING LIST
+   SHOPPING — prices, then a tick-off checklist
    ===================================================================== */
 wireSeg("priceModeSeg",v=>{state.priceMode=v;
   document.getElementById("storePickWrap").style.display = v==="single"?"block":"none";
@@ -652,21 +1194,19 @@ wireSeg("priceModeSeg",v=>{state.priceMode=v;
 document.getElementById("storePick").innerHTML = STORES.map(s=>`<option>${s}</option>`).join("");
 document.getElementById("storePick").addEventListener("change",e=>{state.store=e.target.value;renderShopping();});
 
-function buildShopping(){ goStep(7); renderShopping(); }
+function buildShopping(){ goStep(7); showPricesView(); renderShopping(); }
 
 function totalsPerFood(){
   const need={};
-  state.plan.forEach(wk=>wk.forEach(d=>d.meals.forEach(m=>m.items.forEach(([f,g])=>{
+  state.plan.forEach(wk=>wk.days.forEach(d=>d.meals.forEach(m=>m.items.forEach(([f,g])=>{
     need[f.id]=(need[f.id]||0)+g;}))));
   return need;
 }
-/* cost of buying `grams` of food f at a given store (whole packs) */
 const packCost=(f,store,grams)=>{
   const e=f.prices[store]; if(!e) return null;
   const packs=Math.ceil(grams/e.g);
   return {store,packs,price:packs*e.p,entry:e};
 };
-/* cheapest store for this food & quantity (accounts for pack sizes) */
 const bestBuy=(f,grams)=>{
   let best=null;
   for(const s of STORES){ const c=packCost(f,s,grams);
@@ -674,47 +1214,211 @@ const bestBuy=(f,grams)=>{
   return best;
 };
 
-function renderShopping(){
-  if(!state.plan) return;
-  const need=totalsPerFood(); let total=0; const rows=[];
+function computeShopRows(){
+  const need=totalsPerFood(); const rows=[]; let total=0;
   for(const id of Object.keys(need)){
     const f=FOODS.find(x=>x.id===id);
     const grams=need[id];
-    let buyCell="",storeCell="",price=null;
+    let row={id,name:f.name,kg:(grams/1000).toFixed(2),buy:"—",store:null,price:null,note:null};
     if(state.priceMode==="cheapest"){
       const b=bestBuy(f,grams);
-      price=b.price;
-      buyCell=`${b.packs} × ${b.entry.n} (${b.entry.g} g)`;
-      storeCell=`<span class="store-tag">${b.store}</span>`;
+      row.buy=`${b.packs} × ${b.entry.n} (${b.entry.g} g)`; row.store=b.store; row.price=b.price;
     }else{
       const s=state.store, c=packCost(f,s,grams);
-      if(c){ price=c.price; buyCell=`${c.packs} × ${c.entry.n} (${c.entry.g} g)`;
-             storeCell=`<span class="store-tag">${s}</span>`; }
+      if(c){ row.buy=`${c.packs} × ${c.entry.n} (${c.entry.g} g)`; row.store=s; row.price=c.price; }
       else{
-        // suggest the cheapest same-role alternative stocked at this store
         const alts=FOODS.filter(x=>x.role===f.role && x.id!==f.id && x.prices[s])
-                        .map(x=>({x,c:packCost(x,s,grams)}))
-                        .sort((a,b)=>a.c.price-b.c.price);
-        if(alts.length){ const a=alts[0]; price=a.c.price;
-          buyCell=`${a.c.packs} × ${a.c.entry.n} (${a.c.entry.g} g)`;
-          storeCell=`<span class="alt-cell">Not stocked — suggested alternative: ${a.x.name}</span>`; }
-        else{ buyCell="—";
-          storeCell=`<span class="note-cell">Ingredient not found — please seek alternative</span>`; }
+                        .map(x=>({x,c:packCost(x,s,grams)})).sort((a,b)=>a.c.price-b.c.price);
+        if(alts.length){ const a=alts[0];
+          row.buy=`${a.c.packs} × ${a.c.entry.n} (${a.c.entry.g} g)`; row.store=s; row.price=a.c.price;
+          row.note=`Not stocked — suggested alternative: ${a.x.name}`; }
+        else row.note="Ingredient not found — please seek alternative";
       }
     }
-    if(price!=null) total+=price;
-    rows.push(`<tr><td><b>${f.name}</b></td><td>${(grams/1000).toFixed(2)} kg</td>
-      <td>${buyCell}</td><td>${storeCell}</td>
-      <td style="text-align:right">${price!=null?"$"+price.toFixed(2):"—"}</td></tr>`);
+    if(row.price!=null) total+=row.price;
+    rows.push(row);
   }
-  document.getElementById("shoppingBody").innerHTML =
-    `<table><thead><tr><th>Item</th><th>Total needed</th><th>Buy (cheapest brand)</th><th>Store</th><th style="text-align:right">Price (BBD)</th></tr></thead>
-     <tbody>${rows.join("")}
-     <tr class="total-row"><td colspan="4">Estimated total (${state.priceMode==="cheapest"?"cheapest mix of stores":state.store})</td>
-     <td style="text-align:right">$${total.toFixed(2)}</td></tr></tbody></table>`;
+  return {rows,total,mode:state.priceMode,store:state.store};
 }
 
+function renderShopping(){
+  if(!state.plan) return;
+  const R=computeShopRows(); state.shopRows=R;
+  document.getElementById("shoppingBody").innerHTML =
+    `<table><thead><tr><th>Item</th><th>Total needed</th><th>Buy (cheapest brand)</th><th>Store</th><th style="text-align:right">Price (BBD)</th></tr></thead>
+     <tbody>${R.rows.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.kg} kg</td><td>${r.buy}</td>
+       <td>${r.note?`<span class="${r.note.startsWith("Not stocked")?"alt-cell":"note-cell"}">${r.note}</span>`:`<span class="store-tag">${r.store}</span>`}</td>
+       <td style="text-align:right">${r.price!=null?"$"+r.price.toFixed(2):"—"}</td></tr>`).join("")}
+     <tr class="total-row"><td colspan="4">Estimated total (${R.mode==="cheapest"?"cheapest mix of stores":R.store})</td>
+     <td style="text-align:right">$${R.total.toFixed(2)}</td></tr></tbody></table>`;
+}
+
+function showPricesView(){
+  document.getElementById("shoppingBody").classList.remove("hidden");
+  document.getElementById("priceControls").classList.remove("hidden");
+  document.getElementById("checklistBody").classList.add("hidden");
+  document.getElementById("shopNavPrices").classList.remove("hidden");
+  document.getElementById("shopNavChecklist").classList.add("hidden");
+  document.getElementById("shopTitle").textContent="Your shopping list";
+}
+function confirmList(){
+  if(!state.shopRows) renderShopping();
+  state.checklist={rows:state.shopRows.rows,total:state.shopRows.total,mode:state.shopRows.mode,
+                   store:state.shopRows.store,checked:{},savedAt:Date.now()};
+  persistChecklist(); renderChecklist();
+}
+function editList(){ showPricesView(); renderShopping(); }
+function persistChecklist(){
+  const m=me(); if(!m) return;
+  m.data.shopping=state.checklist; saveMe(m.data);
+}
+function restoreChecklistIfAny(){
+  const m=me();
+  if(m && m.data.shopping && !state.checklist){ state.checklist=m.data.shopping; }
+}
+function toggleCheck(id){
+  const c=state.checklist; if(!c) return;
+  c.checked[id]=!c.checked[id];
+  persistChecklist(); renderChecklist();
+}
+function renderChecklist(){
+  const c=state.checklist; if(!c) return;
+  goView("planner"); goStep(7);
+  document.getElementById("shoppingBody").classList.add("hidden");
+  document.getElementById("priceControls").classList.add("hidden");
+  document.getElementById("shopNavPrices").classList.add("hidden");
+  document.getElementById("shopNavChecklist").classList.remove("hidden");
+  document.getElementById("shopTitle").textContent="Shopping checklist";
+  const done=c.rows.filter(r=>c.checked[r.id]).length, total=c.rows.length;
+  const leftCost=c.rows.filter(r=>!c.checked[r.id]&&r.price!=null).reduce((s,r)=>s+r.price,0);
+  const signedIn=!!me();
+  document.getElementById("checklistBody").classList.remove("hidden");
+  document.getElementById("checklistBody").innerHTML =
+    `<div class="check-progress">
+       <div class="progressbar"><div style="width:${total?Math.round(done/total*100):0}%"></div></div>
+       <div class="check-meta"><b>${done} of ${total}</b> picked up · $${leftCost.toFixed(2)} left to spend · list total $${c.total.toFixed(2)} BBD
+       ${signedIn?"":' · <span class="alt-cell">sign in to save this list</span>'}</div>
+     </div>`+
+    c.rows.map(r=>`
+     <label class="check-row ${c.checked[r.id]?'done':''}">
+       <input type="checkbox" ${c.checked[r.id]?"checked":""} onchange="toggleCheck('${r.id}')">
+       <span class="ck-main"><b>${r.name}</b> — ${r.buy}
+         ${r.note?`<span class="${r.note.startsWith('Not stocked')?'alt-cell':'note-cell'}">${r.note}</span>`:""}</span>
+       <span class="ck-side">${r.store?`<span class="store-tag">${r.store}</span>`:""} ${r.price!=null?"$"+r.price.toFixed(2):""}</span>
+     </label>`).join("");
+}
+
+/* =====================================================================
+   PROGRESS — weight log, stats, chart
+   ===================================================================== */
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function addLog(){
+  const m=me(); if(!m){ toggleAuth(); return; }
+  const d=document.getElementById("logDate").value||todayStr();
+  const w=parseFloat(document.getElementById("logWeight").value);
+  if(!w||w<30||w>300) return;
+  m.data.logs=m.data.logs.filter(l=>l.d!==d);
+  m.data.logs.push({d,w}); m.data.logs.sort((a,b)=>a.d<b.d?-1:1);
+  saveMe(m.data);
+  document.getElementById("logWeight").value="";
+  renderProgress();
+}
+function delLog(d){
+  const m=me(); if(!m) return;
+  m.data.logs=m.data.logs.filter(l=>l.d!==d); saveMe(m.data); renderProgress();
+}
+function progChartSVG(logs,goalW){
+  if(logs.length<2) return `<p class="hint">Add at least two entries to see your trend line.</p>`;
+  const W=640,H=220,padL=44,padR=14,padT=14,padB=26;
+  const ts=logs.map(l=>new Date(l.d).getTime()), ws=logs.map(l=>l.w);
+  let lo=Math.min(...ws,goalW||Infinity), hi=Math.max(...ws,goalW||-Infinity);
+  const span=Math.max(hi-lo,2); lo-=span*0.1; hi+=span*0.1;
+  const X=t=>padL+(t-ts[0])/((ts[ts.length-1]-ts[0])||1)*(W-padL-padR);
+  const Y=w=>padT+(hi-w)/(hi-lo)*(H-padT-padB);
+  const pts=logs.map(l=>`${X(new Date(l.d).getTime()).toFixed(1)},${Y(l.w).toFixed(1)}`).join(" ");
+  const gy=goalW?Y(goalW):null;
+  const yticks=[lo+span*0.1,(lo+hi)/2,hi-span*0.1].map(v=>
+    `<text x="${padL-6}" y="${Y(v)+4}" text-anchor="end" font-size="11" fill="var(--muted)">${v.toFixed(1)}</text>
+     <line x1="${padL}" x2="${W-padR}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-dasharray="2 4"/>`).join("");
+  return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Weight trend">
+    ${yticks}
+    ${gy!=null?`<line x1="${padL}" x2="${W-padR}" y1="${gy}" y2="${gy}" stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 5"/>
+    <text x="${W-padR}" y="${gy-6}" text-anchor="end" font-size="11" fill="#8a6414">goal ${goalW} kg</text>`:""}
+    <polyline points="${pts}" fill="none" stroke="var(--deep)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${logs.map(l=>`<circle cx="${X(new Date(l.d).getTime())}" cy="${Y(l.w)}" r="4" fill="var(--deep)"/>`).join("")}
+    <text x="${padL}" y="${H-8}" font-size="11" fill="var(--muted)">${logs[0].d}</text>
+    <text x="${W-padR}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--muted)">${logs[logs.length-1].d}</text>
+  </svg>`;
+}
+function renderProgress(){
+  const m=me();
+  const need=document.getElementById("progNeedAuth");
+  document.getElementById("progTitle").textContent = m? `Track your change, ${m.name}` : "Track your change";
+  need.classList.toggle("hidden",!!m);
+  const dateEl=document.getElementById("logDate"); if(!dateEl.value) dateEl.value=todayStr();
+  const logs=m?m.data.logs:[];
+  const goalW=+document.getElementById("goalWeight").value||null;
+  const gaining = state.goal==="muscle";
+  let stats="";
+  if(logs.length){
+    const start=logs[0].w, cur=logs[logs.length-1].w, ch=cur-start;
+    const dirWord = ch<0?"lost":"gained";
+    const good = gaining? ch>0 : ch<0;
+    stats=`<div class="target"><div class="num">${start.toFixed(1)}</div><div class="lbl">start (kg)</div></div>
+      <div class="target"><div class="num">${cur.toFixed(1)}</div><div class="lbl">latest (kg)</div></div>
+      <div class="target"><div class="num" style="color:${good?'var(--deep)':'var(--coral)'}">${ch>0?"+":""}${ch.toFixed(1)}</div><div class="lbl">${dirWord} so far</div></div>`+
+      (goalW?`<div class="target"><div class="num">${Math.abs(cur-goalW).toFixed(1)}</div><div class="lbl">kg to goal (${goalW})</div></div>`:"");
+  }
+  document.getElementById("progStats").innerHTML=stats;
+  document.getElementById("progChart").innerHTML=progChartSVG(logs,goalW);
+  document.getElementById("progList").innerHTML = logs.length?
+    `<table style="margin-top:14px"><thead><tr><th>Date</th><th>Weight (kg)</th><th></th></tr></thead><tbody>`+
+    [...logs].reverse().map(l=>`<tr><td>${l.d}</td><td>${l.w.toFixed(1)}</td>
+      <td style="text-align:right"><button class="del-btn" onclick="delLog('${l.d}')" aria-label="Delete entry">✕</button></td></tr>`).join("")+
+    `</tbody></table>` : (m?`<p class="hint">No entries yet — add your first weigh-in above.</p>`:"");
+  const sh=m&&m.data.shopping;
+  document.getElementById("progShopping").innerHTML = sh?
+    `<div class="notice" style="margin-top:18px"><b>Saved shopping list</b> (${sh.rows.filter(r=>sh.checked[r.id]).length}/${sh.rows.length} picked · $${sh.total.toFixed(2)} BBD) —
+     <button class="btn-ghost" onclick="state.checklist=me().data.shopping;renderChecklist()">Resume shopping</button></div>`:"";
+}
+
+/* =====================================================================
+   INIT
+   ===================================================================== */
+renderDietUI();
 renderStepper();
+refreshAuthUI();
+restoreChecklistIfAny();
+
+</script>
+<script type="module">
+/* Loads Firebase only when a real config has been pasted above. */
+const cfg = FIREBASE_CONFIG;
+if (cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
+  try {
+    const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
+    const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
+            onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
+    const { getFirestore, doc, getDoc, setDoc } =
+      await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
+    const app  = initializeApp(cfg);
+    const auth = getAuth(app);
+    const db   = getFirestore(app);
+    try{ await setPersistence(auth, browserLocalPersistence); }catch(e){}
+    window.FB = {
+      signUp : (e,p)=>createUserWithEmailAndPassword(auth,e,p),
+      signIn : (e,p)=>signInWithEmailAndPassword(auth,e,p),
+      signOut: ()=>signOut(auth),
+      load   : async uid=>{ const s=await getDoc(doc(db,"users",uid)); return s.exists()?s.data():null; },
+      save   : (uid,data)=>setDoc(doc(db,"users",uid), JSON.parse(JSON.stringify(data)))
+    };
+    window.onFirebaseReady();
+    onAuthStateChanged(auth, u=>window.onFirebaseAuth(u));
+  } catch(e){
+    console.warn("Firebase failed to load — staying in local mode.", e);
+  }
+}
 </script>
 </body>
 </html>
