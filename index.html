@@ -20,15 +20,49 @@
   --muted:#5C6F6C;
   --radius:14px;
   --shadow:0 2px 10px rgba(21,42,46,.06);
+  --shadow-lift:0 6px 22px rgba(21,42,46,.10);
   --display:'Fraunces',serif;
   --body:'Public Sans',system-ui,sans-serif;
+
+  /* ---------- motion tokens ----------
+     Built-in CSS easings are too weak to read as deliberate.
+     ease-out for anything entering/exiting, ease-in-out for on-screen
+     movement, drawer curve for panels sliding from an edge.
+     Never ease-in on UI: it delays the exact moment the user is watching. */
+  --ease-out:cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in-out:cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-drawer:cubic-bezier(0.32, 0.72, 0, 1);
+  --dur-press:160ms;   /* press feedback */
+  --dur-fast:180ms;    /* chips, checks, high-frequency taps */
+  --dur-ui:220ms;      /* panels, tabs, step changes */
+  --dur-panel:320ms;   /* auth drawer, toasts */
+  --stagger:45ms;      /* between staggered siblings */
 }
 *{box-sizing:border-box;margin:0;padding:0}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;interpolate-size:allow-keywords}
 body{font-family:var(--body);background:var(--bg);color:var(--ink);line-height:1.55;-webkit-font-smoothing:antialiased}
 button{font-family:var(--body);cursor:pointer}
 h1,h2,h3,.display{font-family:var(--display)}
 .wrap{max-width:1040px;margin:0 auto;padding:0 20px}
+main{overflow-x:clip}
+
+/* ---------- universal press feedback ----------
+   Every pressable element confirms it heard the tap. Subtle (0.97) and
+   fast (160ms) so it registers without ever feeling like a delay. */
+.btn,.btn-ghost,.chip,.choice,.seg button,.topnav button,.week-tabs button,
+.check-row,.del-btn,.pantry-row .btn-ghost,details.recipe summary{
+  transition:transform var(--dur-press) var(--ease-out),
+             background-color var(--dur-fast) ease,
+             border-color var(--dur-fast) ease,
+             color var(--dur-fast) ease,
+             opacity var(--dur-fast) ease,
+             box-shadow var(--dur-fast) ease;
+}
+.btn:active,.btn-ghost:active,.chip:active,.seg button:active,
+.topnav button:active,.week-tabs button:active,.del-btn:active,
+details.recipe summary:active{transform:scale(.97)}
+.choice:active,.check-row:active{transform:scale(.985)}
+.btn:disabled:active{transform:none}
 
 /* ---------- header ---------- */
 header{padding:26px 0 8px}
@@ -39,12 +73,16 @@ header{padding:26px 0 8px}
 
 /* ---------- stepper ---------- */
 .stepper{display:flex;gap:6px;margin:22px 0 26px;flex-wrap:wrap}
-.step-pill{flex:1;min-width:110px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px;transition:.2s}
-.step-pill .dot{width:20px;height:20px;border-radius:50%;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;flex:none}
+.step-pill{flex:1;min-width:110px;border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 14px;font-size:12.5px;font-weight:600;color:var(--muted);display:flex;align-items:center;gap:8px;
+  transition:background-color var(--dur-ui) ease,border-color var(--dur-ui) ease,color var(--dur-ui) ease}
+.step-pill .dot{width:20px;height:20px;border-radius:50%;background:var(--bg);border:1px solid var(--line);display:grid;place-items:center;font-size:11px;flex:none;
+  transition:background-color var(--dur-ui) var(--ease-out),border-color var(--dur-ui) ease,color var(--dur-ui) ease,transform var(--dur-ui) var(--ease-out)}
 .step-pill.active{border-color:var(--deep);color:var(--deep);background:var(--deep-soft)}
 .step-pill.active .dot{background:var(--deep);color:#fff;border-color:var(--deep)}
 .step-pill.done{color:var(--deep)}
 .step-pill.done .dot{background:var(--gold);border-color:var(--gold);color:var(--ink)}
+/* the tick lands with a small pop the moment a step is completed */
+.step-pill.just-done .dot{transform:scale(1.18)}
 
 /* ---------- cards / panels ---------- */
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:28px;margin-bottom:22px}
@@ -52,13 +90,35 @@ header{padding:26px 0 8px}
 .panel .lede{color:var(--muted);font-size:14.5px;margin-bottom:22px;max-width:60ch}
 .eyebrow{font-size:11.5px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;display:block}
 
+/* ---------- step + view transitions ----------
+   Spatial consistency: moving forward through the wizard slides content in
+   from the right, going Back slides it in from the left, so the direction of
+   travel is legible. Transitions (not keyframes) so a fast double-tap on
+   Continue retargets smoothly instead of restarting from zero. */
+#view-planner section.panel,#view-progress{
+  transition:opacity var(--dur-ui) var(--ease-out),transform var(--dur-ui) var(--ease-out)}
+section.panel[data-enter],#view-progress[data-enter]{opacity:0}
+section.panel[data-enter="fwd"]{transform:translate3d(14px,0,0)}
+section.panel[data-enter="back"]{transform:translate3d(-14px,0,0)}
+section.panel[data-enter="fade"],#view-progress[data-enter]{transform:translate3d(0,6px,0)}
+
+/* ---------- staggered reveal ----------
+   Decorative, so it never blocks interaction: the element is fully
+   interactive from frame one, only its opacity/offset are animating. */
+.stagger-in{opacity:0;transform:translate3d(0,8px,0);
+  animation:riseIn var(--dur-ui) var(--ease-out) forwards;
+  animation-delay:calc(var(--i,0) * var(--stagger))}
+@keyframes riseIn{to{opacity:1;transform:translate3d(0,0,0)}}
+
 /* ---------- forms ---------- */
 .grid{display:grid;gap:16px}
 .grid.cols-2{grid-template-columns:repeat(2,1fr)}
 .grid.cols-3{grid-template-columns:repeat(3,1fr)}
 .field label{display:block;font-size:13px;font-weight:600;margin-bottom:6px}
 .field .hint{font-weight:400;color:var(--muted);font-size:12px}
-input[type=number],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:var(--body);background:#fff;color:var(--ink)}
+input[type=number],select{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px;font-family:var(--body);background:#fff;color:var(--ink);
+  transition:border-color var(--dur-fast) ease,box-shadow var(--dur-fast) var(--ease-out)}
+input[type=number]:focus,select:focus{border-color:var(--deep);box-shadow:0 0 0 3px var(--deep-soft)}
 input:focus,select:focus,button:focus-visible{outline:2px solid var(--deep);outline-offset:1px}
 .seg{display:flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
 .seg button{flex:1;padding:11px;background:#fff;border:none;font-size:14px;font-weight:600;color:var(--muted)}
@@ -66,13 +126,13 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--deep);outl
 
 /* ---------- choice cards ---------- */
 .choice-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:14px}
-.choice{border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:16px;text-align:left;transition:.15s}
-.choice:hover{border-color:var(--deep)}
+.choice{border:1.5px solid var(--line);border-radius:12px;background:#fff;padding:16px;text-align:left}
 .choice.on{border-color:var(--deep);background:var(--deep-soft);box-shadow:inset 0 0 0 1px var(--deep)}
 .choice h3{font-size:16.5px;font-weight:600;margin-bottom:3px}
 .choice .bf{display:inline-block;font-size:11.5px;font-weight:700;background:var(--gold-soft);color:#8a6414;border-radius:999px;padding:2px 9px;margin-bottom:7px}
 .choice p{font-size:12.5px;color:var(--muted)}
-.choice .art{font-size:26px;margin-bottom:8px;display:block}
+.choice .art{font-size:26px;margin-bottom:8px;display:block;transition:transform var(--dur-ui) var(--ease-out)}
+.choice.on .art{transform:scale(1.12)}
 
 /* ---------- food chips ---------- */
 .cat-title{font-size:13px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:var(--deep);margin:18px 0 8px}
@@ -81,23 +141,33 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--deep);outl
 .chip.on{background:var(--deep);border-color:var(--deep);color:#fff}
 .toolbar{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:4px}
 .btn-ghost{border:1px solid var(--line);background:#fff;border-radius:10px;padding:9px 16px;font-size:13.5px;font-weight:600;color:var(--deep)}
-.btn-ghost:hover{background:var(--deep-soft)}
 
 /* ---------- buttons / nav ---------- */
 .nav-row{display:flex;justify-content:space-between;gap:12px;margin-top:26px}
 .btn{border:none;border-radius:11px;padding:13px 26px;font-size:15px;font-weight:700}
 .btn-primary{background:var(--deep);color:#fff}
-.btn-primary:hover{background:#0a3d37}
 .btn-secondary{background:#fff;border:1.5px solid var(--line);color:var(--ink)}
 .btn-gold{background:var(--gold);color:var(--ink)}
 .btn:disabled{opacity:.45;cursor:not-allowed}
+
+/* hover motion gated: touch devices fire a false hover on tap, which would
+   leave elements stuck in their hover state after a finger lifts */
+@media (hover:hover) and (pointer:fine){
+  .choice:hover{border-color:var(--deep)}
+  .btn-ghost:hover{background:var(--deep-soft)}
+  .btn-primary:hover{background:#0a3d37}
+  .del-btn:hover{background:#fbeae6}
+  .btn:not(:disabled):hover{box-shadow:var(--shadow-lift)}
+  .check-row:hover{border-color:var(--deep)}
+  .day-card:hover{box-shadow:var(--shadow)}
+}
 
 /* ---------- results ---------- */
 .targets{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin:14px 0 6px}
 .target{background:var(--deep-soft);border-radius:12px;padding:14px 16px}
 .target .num{font-family:var(--display);font-size:24px;font-weight:700;color:var(--deep)}
 .target .lbl{font-size:12px;font-weight:600;color:var(--muted)}
-.day-card{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden}
+.day-card{border:1px solid var(--line);border-radius:12px;margin-bottom:14px;overflow:hidden;transition:box-shadow var(--dur-ui) ease}
 .day-head{background:var(--deep);color:#fff;padding:10px 18px;display:flex;justify-content:space-between;align-items:center;font-size:14px}
 .day-head .macros{font-size:12.5px;opacity:.9}
 .meal{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap}
@@ -110,12 +180,15 @@ input:focus,select:focus,button:focus-visible{outline:2px solid var(--deep);outl
 .week-tabs button.on{background:var(--gold);border-color:var(--gold)}
 .week-summary{background:var(--gold-soft);border-radius:12px;padding:14px 18px;font-size:13.5px;margin-bottom:16px}
 
-/* macro rings */
+/* macro rings — the ring sweep is the one deliberately slow moment in the
+   app. It fires once per plan generation (rare tier), where the delight
+   budget lives, and it explains the macro split as it draws. */
 .rings{display:flex;gap:22px;flex-wrap:wrap;align-items:center;margin:10px 0 6px}
 .ring{position:relative;width:92px;height:92px}
 .ring svg{transform:rotate(-90deg)}
 .ring .val{position:absolute;inset:0;display:grid;place-items:center;text-align:center;font-size:11px;font-weight:700;line-height:1.2}
 .ring .val b{font-size:14px;display:block;font-family:var(--display)}
+.ring .arc{transition:stroke-dashoffset 620ms var(--ease-out);transition-delay:calc(var(--i,0) * 90ms)}
 
 /* ---------- shopping ---------- */
 table{width:100%;border-collapse:collapse;font-size:13.5px}
@@ -136,50 +209,123 @@ footer{padding:26px 0 44px;color:var(--muted);font-size:12.5px;text-align:center
   .panel{padding:20px}
   .meal .m-name{min-width:100%}
 }
-@media(prefers-reduced-motion:reduce){*{transition:none!important}}
+
+/* ---------- reduced motion ----------
+   Fewer and gentler, not zero. Position changes and scaling go away;
+   opacity and colour transitions stay, because they are what makes a
+   state change legible rather than jarring. */
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  *{transition-duration:120ms!important;animation-duration:120ms!important;animation-delay:0ms!important;transition-delay:0ms!important}
+  section.panel[data-enter],#view-progress[data-enter],.stagger-in{transform:none!important}
+  .btn:active,.btn-ghost:active,.chip:active,.seg button:active,.topnav button:active,
+  .week-tabs button:active,.del-btn:active,.choice:active,.check-row:active,
+  details.recipe summary:active{transform:none!important}
+  .choice.on .art,.step-pill.just-done .dot{transform:none!important}
+  .toast{transform:none!important}
+  .ring .arc{transition:none!important}
+}
 @media print{
-  header,.stepper,.nav-row,.week-tabs,.toolbar,button{display:none!important}
+  header,.stepper,.nav-row,.week-tabs,.toolbar,button,.toast-viewport{display:none!important}
   body{background:#fff}.panel{box-shadow:none;border:none;padding:0}
+  .stagger-in{animation:none;opacity:1;transform:none}
 }
 /* ---------- top nav & auth ---------- */
 .topnav{display:flex;gap:8px;margin-left:auto;align-items:center;flex-wrap:wrap}
 .topnav button{border:1px solid var(--line);background:var(--card);border-radius:999px;padding:8px 16px;font-size:13px;font-weight:600;color:var(--muted)}
 .topnav button.on{background:var(--deep);border-color:var(--deep);color:#fff}
 .topnav button.profile{background:var(--gold-soft);border-color:#edd9ae;color:#6b5210}
-.auth{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:16px}
+/* the auth panel is anchored to the Sign in button, so it scales from the
+   top-right corner it came from rather than from its own centre */
+.auth{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);box-shadow:var(--shadow);padding:20px;margin-top:16px;
+  transform-origin:top right;
+  transition:opacity var(--dur-ui) var(--ease-out),transform var(--dur-ui) var(--ease-out)}
+.auth[data-enter]{opacity:0;transform:scale(.97) translate3d(0,-6px,0)}
 .auth-inner{display:grid;grid-template-columns:1fr 1fr auto;gap:14px;align-items:end}
 .auth input[type=text]{width:100%;padding:11px 12px;border:1px solid var(--line);border-radius:10px;font-size:15px}
 .auth-actions{display:flex;gap:8px;flex-wrap:wrap}
 .auth-note{font-size:12px;color:var(--muted);margin-top:10px}
-.auth-msg{font-size:13px;font-weight:600;color:var(--coral);margin-top:8px;min-height:18px}
+.auth-msg{font-size:13px;font-weight:600;color:var(--coral);margin-top:8px;min-height:18px;
+  transition:opacity var(--dur-fast) ease}
 .auth-msg.ok{color:var(--deep)}
 @media(max-width:720px){.auth-inner{grid-template-columns:1fr}}
 /* ---------- recipes ---------- */
 .r-title{font-family:var(--display);font-weight:600;font-size:13.5px;color:var(--deep);margin-top:2px}
 details.recipe{margin-top:8px;border:1px solid var(--line);border-radius:10px;background:#FAFBF8}
 details.recipe summary{cursor:pointer;padding:8px 12px;font-size:12.5px;font-weight:700;color:var(--deep);list-style:none}
-details.recipe summary::before{content:"▸ ";color:var(--gold)}
-details.recipe[open] summary::before{content:"▾ "}
+details.recipe summary::before{content:"▸ ";color:var(--gold);display:inline-block;
+  transition:transform var(--dur-fast) var(--ease-out)}
+details.recipe[open] summary::before{transform:rotate(90deg)}
 details.recipe ol{padding:2px 14px 12px 30px;font-size:13px;color:var(--ink)}
 details.recipe li{margin-bottom:5px}
+/* animated disclosure where supported (::details-content, interpolate-size);
+   elsewhere it degrades to the normal instant open, which is fine */
+details.recipe::details-content{
+  block-size:0;overflow:hidden;
+  transition:block-size var(--dur-ui) var(--ease-out),content-visibility var(--dur-ui) allow-discrete}
+details.recipe[open]::details-content{block-size:auto}
 /* ---------- checklist ---------- */
 .check-progress{margin-bottom:16px}
 .progressbar{height:10px;background:var(--deep-soft);border-radius:999px;overflow:hidden}
-.progressbar div{height:100%;background:var(--gold);border-radius:999px;transition:width .25s}
+/* scaleX rather than width: width forces layout + paint on every tick,
+   transform is composited on the GPU */
+.progressbar div{height:100%;background:var(--gold);border-radius:999px;
+  transform-origin:left center;transform:scaleX(0);
+  transition:transform var(--dur-panel) var(--ease-out)}
 .check-meta{font-size:13px;color:var(--muted);margin-top:8px}
-.check-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;margin-bottom:9px;cursor:pointer;transition:.15s}
+.check-row{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:12px;background:#fff;padding:12px 14px;margin-bottom:9px;cursor:pointer}
 .check-row input{width:20px;height:20px;accent-color:var(--deep);margin-top:2px;flex:none}
 .check-row .ck-main{flex:1;font-size:13.5px}
 .check-row .ck-main .alt-cell,.check-row .ck-main .note-cell{display:block;margin-top:3px}
 .check-row .ck-side{font-size:13px;font-weight:700;white-space:nowrap;display:flex;gap:8px;align-items:center}
 .check-row.done{opacity:.55;background:var(--deep-soft)}
-.check-row.done .ck-main b{text-decoration:line-through}
+/* strike-through wipes across the item instead of snapping on */
+.check-row .ck-main b{position:relative}
+.check-row .ck-main b::after{content:"";position:absolute;left:0;right:0;top:50%;height:1.5px;background:currentColor;
+  transform:scaleX(0);transform-origin:left center;
+  transition:transform var(--dur-fast) var(--ease-out)}
+.check-row.done .ck-main b::after{transform:scaleX(1)}
+/* ---------- pantry ---------- */
+.pantry-tag{display:inline-block;background:#E3EEE6;color:#1c6b3a;border-radius:6px;padding:2px 9px;font-size:11.5px;font-weight:700}
+.first-tag{display:inline-block;background:var(--gold-soft);color:#8a6414;border-radius:6px;padding:2px 9px;font-size:11.5px;font-weight:700;margin-top:2px}
+.row-pantry td{background:#F2F8F3!important}
+.low-box .low-item{display:inline-flex;align-items:center;gap:8px;flex-wrap:wrap;margin:6px 12px 0 0;font-size:12.5px}
+.low-box .btn-ghost{padding:4px 10px;font-size:12px}
+.pantry-row{display:grid;grid-template-columns:1fr 160px auto;gap:12px;align-items:center;border:1px solid var(--line);border-radius:12px;background:#fff;padding:10px 14px;margin-bottom:8px;
+  transition:border-color var(--dur-ui) ease,background-color var(--dur-ui) ease}
+.pantry-row.low{border-color:#f0c9be;background:#FDF6F4}
+.pantry-row .p-name{font-size:13.5px}
+.fill-bar{height:9px;background:var(--deep-soft);border-radius:999px;overflow:hidden}
+.fill-bar div{height:100%;background:var(--deep);border-radius:999px;
+  transform-origin:left center;transition:transform var(--dur-panel) var(--ease-out),background-color var(--dur-ui) ease}
+.pantry-row.low .fill-bar div{background:var(--coral)}
+.p-actions{display:flex;gap:6px;align-items:center}
+@media(max-width:640px){.pantry-row{grid-template-columns:1fr auto}.fill-bar{grid-column:1/-1}}
 /* ---------- progress ---------- */
 .chart-wrap{margin:16px 0 6px;background:#fff;border:1px solid var(--line);border-radius:12px;padding:14px}
 .chart-wrap svg{width:100%;height:auto;display:block}
+/* the trend line draws itself in on render — once per visit, and it traces
+   the data left-to-right in reading order rather than decorating it */
+.chart-wrap .trend{stroke-dasharray:var(--len);stroke-dashoffset:var(--len);
+  animation:draw 700ms var(--ease-out) 80ms forwards}
+@keyframes draw{to{stroke-dashoffset:0}}
 .del-btn{border:none;background:none;color:var(--coral);font-weight:700;font-size:14px;padding:4px 8px;border-radius:8px}
-.del-btn:hover{background:#fbeae6}
 
+/* ---------- toasts ----------
+   Transitions, not keyframes, so stacking a second toast retargets the
+   first mid-flight instead of restarting it from zero. translateY uses a
+   percentage so it works at any toast height. */
+.toast-viewport{position:fixed;right:20px;bottom:20px;z-index:99;display:flex;flex-direction:column;gap:8px;align-items:flex-end;pointer-events:none}
+.toast{background:var(--ink);color:#fff;border-radius:12px;padding:12px 16px;font-size:13.5px;font-weight:600;
+  box-shadow:0 8px 28px rgba(21,42,46,.22);max-width:min(340px,calc(100vw - 40px));
+  display:flex;gap:9px;align-items:center;pointer-events:auto;
+  transition:opacity var(--dur-panel) var(--ease-out),transform var(--dur-panel) var(--ease-drawer)}
+.toast[data-enter],.toast[data-leave]{opacity:0;transform:translate3d(0,110%,0)}
+.toast .tk{color:var(--gold);font-size:15px;line-height:1}
+@media(max-width:640px){
+  .toast-viewport{left:20px;right:20px;align-items:stretch}
+  .toast{max-width:none}
+}
 </style>
 </head>
 <body>
@@ -393,7 +539,7 @@ details.recipe li{margin-bottom:5px}
   <section class="panel hidden" id="step-7">
     <span class="eyebrow">Shopping</span>
     <h2 id="shopTitle">Your shopping list</h2>
-    <p class="lede" id="shopLede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. The list covers everything your recipes call for. Confirm it to get a checklist you can tick off in the aisle.</p>
+    <p class="lede" id="shopLede">Prices come from the Government of Barbados retail price survey (askdealia.gov.bb) across 14 supermarkets — the app uses each store's latest surveyed price and picks the cheapest brand per item. The list covers everything your recipes call for — and checks your virtual pantry first, so you never re-buy what you already have. Confirm it to get a checklist you can tick off in the aisle.</p>
     <div class="grid cols-2" id="priceControls" style="margin-bottom:18px">
       <div class="field">
         <label>Pricing mode</label>
@@ -407,6 +553,7 @@ details.recipe li{margin-bottom:5px}
         <select id="storePick"></select>
       </div>
     </div>
+    <div id="lowStockBox"></div>
     <div id="shoppingBody"></div>
     <div id="checklistBody" class="hidden"></div>
     <div class="notice" id="shopNotice"><b>Note:</b> Prices are from the official surveys of 5 Nov, 25 Nov and 12 Dec 2025 and may drift from today's shelf prices. Fresh-produce prices sold per piece were converted to per-kg using typical fruit weights; flying fish (5's) and sausage (10's) pack weights are estimates.</div>
@@ -447,6 +594,7 @@ details.recipe li{margin-bottom:5px}
         <div class="chart-wrap" id="progChart"></div>
         <div id="progList"></div>
         <div id="progShopping"></div>
+        <div id="progPantry"></div>
       </div>
     </section>
   </div>
@@ -587,7 +735,7 @@ const DB = {
 };
 const Account = {
   mode:"local", user:null, data:null,
-  blank(){ return {logs:[],shopping:null}; },
+  blank(){ return {logs:[],shopping:null,pantry:{}}; },
   label(){ return this.user ? (this.mode==="cloud"?this.user.email:this.user.name) : null; },
   async persist(){
     if(!this.user||!this.data) return;
@@ -613,7 +761,39 @@ const FB_ERRORS={"auth/invalid-email":"That email doesn't look right.",
  "auth/wrong-password":"Wrong email or password.","auth/too-many-requests":"Too many attempts — wait a minute and try again.",
  "auth/network-request-failed":"Network problem — check your connection."};
 
-function toggleAuth(){ document.getElementById("authPanel").classList.toggle("hidden"); refreshAuthUI(); }
+function toggleAuth(){
+  const p=document.getElementById("authPanel");
+  if(p.classList.contains("hidden")){ refreshAuthUI(); playEnter(p,"scale"); }
+  else{
+    /* exit is quicker than entry — the user has already decided */
+    p.dataset.enter="scale";
+    setTimeout(()=>{p.classList.add("hidden");delete p.dataset.enter;},150);
+  }
+}
+
+/* ---------------------------------------------------------------------
+   TOASTS — transient confirmation for actions that previously gave none.
+   Transitions rather than keyframes so a second toast retargets the first
+   mid-flight instead of restarting it.
+   --------------------------------------------------------------------- */
+const toastHost=(()=>{ const d=document.createElement("div");
+  d.className="toast-viewport"; d.setAttribute("aria-live","polite");
+  document.body.appendChild(d); return d; })();
+function toast(msg,mark){
+  const t=document.createElement("div");
+  t.className="toast"; t.dataset.enter="1";
+  t.innerHTML=`<span class="tk">${mark||"✓"}</span><span>${msg}</span>`;
+  toastHost.appendChild(t);
+  void t.offsetWidth;
+  requestAnimationFrame(()=>delete t.dataset.enter);
+  const close=()=>{ if(!t.isConnected) return;
+    t.dataset.leave="1";
+    t.addEventListener("transitionend",()=>t.remove(),{once:true});
+    setTimeout(()=>t.remove(),600);                 // belt-and-braces
+  };
+  const timer=setTimeout(close,3200);
+  t.addEventListener("click",()=>{clearTimeout(timer);close();});
+}
 function refreshAuthUI(){
   const cloud=Account.mode==="cloud";
   document.getElementById("authCloud").classList.toggle("hidden",!cloud);
@@ -636,6 +816,7 @@ function localSignIn(){
   if(!n) return;
   const p=DB.get("pw_profiles",{});
   if(!p[n]) p[n]=Account.blank();
+  if(!p[n].pantry) p[n].pantry={};
   DB.set("pw_profiles",p); DB.set("pw_active",n);
   Account.user={name:n}; Account.data=p[n];
   document.getElementById("authNew").value="";
@@ -668,7 +849,8 @@ window.onFirebaseReady = ()=>{ Account.mode="cloud"; refreshAuthUI(); };
 window.onFirebaseAuth = async (u)=>{
   if(u){
     Account.mode="cloud"; Account.user=u;
-    try{ Account.data=(await window.FB.load(u.uid)) || Account.blank(); }
+    try{ Account.data=(await window.FB.load(u.uid)) || Account.blank();
+         if(!Account.data.pantry) Account.data.pantry={}; }
     catch(e){ Account.data=Account.blank(); authMsg("Signed in, but couldn't load your data: "+(e.message||e)); return afterSignInRefresh(); }
     authMsg("Signed in as "+u.email,true);
     document.getElementById("authPanel").classList.add("hidden");
@@ -699,22 +881,56 @@ function renderStepper(){
     return `<div class="step-pill ${cls}"><span class="dot">${n<currentStep?"✓":n}</span>${s}</div>`;
   }).join("");
 }
+/* Play an entrance on an element that is being revealed from display:none.
+   Transitions don't fire across a display change, so we unhide, force a
+   style flush, then drop the attribute on the next frame — the legacy
+   equivalent of @starting-style, and reliable in every browser. */
+function playEnter(el,dir){
+  if(!el) return;
+  el.dataset.enter=dir;
+  el.classList.remove("hidden");
+  void el.offsetWidth;                       // flush: commit the "from" state
+  requestAnimationFrame(()=>delete el.dataset.enter);
+}
 function goStep(n){
   if(n>=6 && !state.plan) return;
-  goView("planner");
+  /* Re-entry guard. renderChecklist() calls goStep(7) on every single
+     checkbox tick; without this, ticking an item in the aisle would replay
+     the whole panel transition each time. */
+  const already = state.view==="planner" && currentStep===n
+    && !document.getElementById("step-"+n).classList.contains("hidden");
+  if(already){ renderStepper(); return; }
+  const dir = n < currentStep ? "back" : "fwd";
+  goView("planner",true);
   document.querySelectorAll("#view-planner section.panel").forEach(p=>p.classList.add("hidden"));
-  document.getElementById("step-"+n).classList.remove("hidden");
-  currentStep=n; renderStepper();
+  playEnter(document.getElementById("step-"+n),dir);
+  const prev=currentStep; currentStep=n; renderStepper();
+  if(n>prev) markStepDone(prev);
   window.scrollTo({top:0,behavior:"smooth"});
 }
-function goView(v){
+/* The completed step's tick pops once, on the frame it turns gold. */
+function markStepDone(n){
+  const pill=document.querySelectorAll("#stepper .step-pill")[n-1];
+  if(!pill) return;
+  pill.classList.add("just-done");
+  setTimeout(()=>pill.classList.remove("just-done"),220);
+}
+function goView(v,quiet){
+  const changed = state.view!==v;
   state.view=v;
-  document.getElementById("view-planner").classList.toggle("hidden",v!=="planner");
-  document.getElementById("view-progress").classList.toggle("hidden",v!=="progress");
+  const planner=document.getElementById("view-planner"),
+        progress=document.getElementById("view-progress");
+  planner.classList.toggle("hidden",v!=="planner");
+  if(v==="progress"){
+    /* unhide before rendering: the trend line measures its own path length,
+       which reads back as 0 inside a display:none subtree */
+    if(changed) playEnter(progress,"fade"); else progress.classList.remove("hidden");
+    renderProgress();
+  }
+  else progress.classList.add("hidden");
   document.getElementById("navPlanner").classList.toggle("on",v==="planner");
   document.getElementById("navProgress").classList.toggle("on",v==="progress");
-  if(v==="progress") renderProgress();
-  window.scrollTo({top:0,behavior:"smooth"});
+  if(!quiet && changed) window.scrollTo({top:0,behavior:"smooth"});
 }
 
 function wireSeg(id,cb){
@@ -972,7 +1188,8 @@ function generatePlan(){
     weeks.push({days,diet,targets:WT});
   }
   state.plan=weeks; state.checklist=null; state.shopRows=null;
-  renderPlan(); goStep(6);
+  goStep(6); renderPlan();
+  toast(`${state.weeks}-week plan ready.`,"★");
 }
 
 /* =====================================================================
@@ -1162,13 +1379,19 @@ const fmt=n=>Math.round(n);
 const macroStr=m=>`${fmt(m.k)} kcal · P ${fmt(m.p)}g · C ${fmt(m.c)}g · F ${fmt(m.f)}g`;
 let activeWeek=0;
 
-function ringSVG(label,grams,pct,color){
+function ringSVG(label,grams,pct,color,i){
   const r=38,circ=2*Math.PI*r,off=circ*(1-pct);
+  /* rendered empty (offset = full circumference); sweepRings() sets the real
+     offset on the next frame so the transition has a "from" state to run from */
   return `<div class="ring">
     <svg width="92" height="92"><circle cx="46" cy="46" r="${r}" fill="none" stroke="var(--line)" stroke-width="9"/>
-    <circle cx="46" cy="46" r="${r}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
-      stroke-dasharray="${circ}" stroke-dashoffset="${off}"/></svg>
+    <circle class="arc" style="--i:${i||0}" cx="46" cy="46" r="${r}" fill="none" stroke="${color}" stroke-width="9" stroke-linecap="round"
+      stroke-dasharray="${circ}" stroke-dashoffset="${circ}" data-off="${off}"/></svg>
     <div class="val"><span><b>${grams}g</b>${label}<br>${Math.round(pct*100)}%</span></div></div>`;
+}
+function sweepRings(){
+  requestAnimationFrame(()=>document.querySelectorAll("#ringsBox .arc")
+    .forEach(c=>c.setAttribute("stroke-dashoffset",c.dataset.off)));
 }
 
 function renderPlan(){
@@ -1182,7 +1405,8 @@ function renderPlan(){
     (g.lowGI?" Carbs are steered toward low-GI, high-fibre foods.":"");
   const pk=WT.protein*4/WT.kcal, ck=WT.carbs*4/WT.kcal, fk=WT.fat*9/WT.kcal;
   document.getElementById("ringsBox").innerHTML =
-    ringSVG("protein",WT.protein,pk,"var(--deep)")+ringSVG("carbs",WT.carbs,ck,"var(--gold)")+ringSVG("fat",WT.fat,fk,"var(--coral)");
+    ringSVG("protein",WT.protein,pk,"var(--deep)",0)+ringSVG("carbs",WT.carbs,ck,"var(--gold)",1)+ringSVG("fat",WT.fat,fk,"var(--coral)",2);
+  sweepRings();
   document.getElementById("targetsBox").innerHTML =
     `<div class="target"><div class="num">${WT.kcal}</div><div class="lbl">kcal / day (wk ${activeWeek+1})</div></div>
      <div class="target"><div class="num">${WT.protein} g</div><div class="lbl">protein / day</div></div>
@@ -1196,7 +1420,7 @@ function renderPlan(){
   document.getElementById("planBody").innerHTML =
     `<div class="week-summary"><b>Week ${activeWeek+1} (${dietName}) totals:</b> ${macroStr(wkTot)} · fibre ${fmt(wkTot.fib)}g
       &nbsp;|&nbsp; daily average ${macroStr({k:wkTot.k/7,p:wkTot.p/7,c:wkTot.c/7,f:wkTot.f/7})}${DIETS[wkObj.diet].keto?" &nbsp;|&nbsp; keto week: carbs held near 50 g/day":""}</div>`+
-    wk.map((d,di)=>`<div class="day-card">
+    wk.map((d,di)=>`<div class="day-card stagger-in" style="--i:${di}">
       <div class="day-head"><b>${DN[di]}</b><span class="macros">${macroStr(d.dayTot)} · fibre ${fmt(d.dayTot.fib)}g</span></div>
       ${d.meals.map((m,mi)=>{
         const r=recipeFor(m, state.mealsPerDay===3&&mi===0);
@@ -1257,69 +1481,201 @@ const bestBuy=(f,grams)=>{
   return best;
 };
 
+/* =====================================================================
+   VIRTUAL PANTRY
+   One-off purchases (oils, peanut butter, seasonings, sauces) go into a
+   per-account pantry with a known capacity. Plans draw down the stock,
+   the list marks what's already on hand, first-time buys are flagged,
+   and anything under 20% triggers a restock prompt.
+   ===================================================================== */
+const STAPLE_FOODS=["veg_oil","olive_oil","margarine","peanut_butter"];   // priced, tracked in grams
+function pantryStore(){
+  const m=me();
+  if(m){ if(!m.data.pantry) m.data.pantry={}; return m.data.pantry; }
+  return state.sessionPantry||(state.sessionPantry={});
+}
+function savePantry(){ const m=me(); if(m) saveMe(m.data); }
+function stockOf(key){ return pantryStore()[key]||null; }
+function bumpStock(key,delta,cap,unit,name){
+  const ps=pantryStore(); const st=ps[key]||{have:0,cap:cap||0,unit,name};
+  st.have=Math.max(0,+(st.have+delta).toFixed(2));
+  if(cap) st.cap=Math.max(st.cap||0,cap);
+  st.unit=st.unit||unit; st.name=st.name||name; st.updated=Date.now();
+  ps[key]=st; savePantry(); return st;
+}
+const unitAmt=(v,u)=> u==="g" ? (v>=1000?(v/1000).toFixed(1)+" kg":Math.round(v)+" g") : (Math.round(v*10)/10)+" "+u;
+
 function computeShopRows(){
-  const {need,pantry}=collectNeeds(); const rows=[]; let total=0;
+  const {need,pantry}=collectNeeds(); const rows=[]; let total=0, pantryCovered=0;
   for(const id of Object.keys(need)){
     const f=FOODS.find(x=>x.id===id);
     const grams=need[id];
     let row={id,name:f.name,kg:(grams/1000).toFixed(2),buy:"—",store:null,price:null,note:null};
+    const tracked=STAPLE_FOODS.includes(id);
+    let buyG=grams, have=0, key=null, st=null;
+    if(tracked){
+      key="food:"+id; st=stockOf(key); have=st?st.have:0;
+      if(have>=grams){                                     // fully covered by pantry
+        row.inPantry=true; row.buy="No purchase needed"; pantryCovered++;
+        row.note=`Already in your pantry — ~${unitAmt(have,"g")} on hand; this plan uses ${unitAmt(grams,"g")}`;
+        row.track={key,need:grams,unit:"g",netAdd:0,cap:st.cap||grams,name:f.name};
+        rows.push(row); continue;
+      }
+      buyG=grams-have;
+    }
+    let entryG=0, packs=0;
     if(state.priceMode==="cheapest"){
-      const b=bestBuy(f,grams);
+      const b=bestBuy(f,buyG);
       row.buy=`${b.packs} × ${b.entry.n} (${b.entry.g} g)`; row.store=b.store; row.price=b.price;
+      entryG=b.entry.g; packs=b.packs;
     }else{
-      const s=state.store, c=packCost(f,s,grams);
-      if(c){ row.buy=`${c.packs} × ${c.entry.n} (${c.entry.g} g)`; row.store=s; row.price=c.price; }
+      const s=state.store, c=packCost(f,s,buyG);
+      if(c){ row.buy=`${c.packs} × ${c.entry.n} (${c.entry.g} g)`; row.store=s; row.price=c.price; entryG=c.entry.g; packs=c.packs; }
       else{
         const alts=FOODS.filter(x=>x.role===f.role && x.id!==f.id && x.prices[s])
-                        .map(x=>({x,c:packCost(x,s,grams)})).sort((a,b)=>a.c.price-b.c.price);
+                        .map(x=>({x,c:packCost(x,s,buyG)})).sort((a,b)=>a.c.price-b.c.price);
         if(alts.length){ const a=alts[0];
           row.buy=`${a.c.packs} × ${a.c.entry.n} (${a.c.entry.g} g)`; row.store=s; row.price=a.c.price;
+          entryG=a.c.entry.g; packs=a.c.packs;
           row.note=`Not stocked — suggested alternative: ${a.x.name}`; }
         else row.note="Ingredient not found — please seek alternative";
       }
     }
+    if(tracked){
+      if(have>0) row.partial=`~${unitAmt(have,"g")} already in your pantry — buying the rest`;
+      else if(!st) row.firstTime=true;                      // never seen before
+      row.track={key,need:grams,unit:"g",netAdd:Math.max(0,packs*entryG-buyG),cap:entryG,name:f.name};
+    }
     if(row.price!=null) total+=row.price;
     rows.push(row);
   }
-  const pantryRows=Object.keys(pantry).map(id=>({
-    id:"pantry_"+id, name:PANTRY[id].name, kg:null, buy:pantryQty(id,pantry[id]),
-    store:null, price:null, pantry:true,
-    note:"Not in the price survey — please check the price in store"}));
-  return {rows,pantryRows,total,mode:state.priceMode,store:state.store};
+  const pantryRows=[];
+  for(const id of Object.keys(pantry)){
+    const P0=PANTRY[id], needQ=pantry[id];
+    const key="pantry:"+id, st=stockOf(key), have=st?st.have:0;
+    let row={id:"pantry_"+id,name:P0.name,kg:null,store:null,price:null,pantry:true};
+    if(have>=needQ){
+      row.inPantry=true; pantryCovered++;
+      row.buy="No purchase needed";
+      row.note=`Already in your pantry — ~${unitAmt(have,P0.unit)} on hand; this plan uses ${unitAmt(needQ,P0.unit)}`;
+      row.track={key,need:needQ,unit:P0.unit,netAdd:0,cap:st.cap||P0.per,name:P0.name};
+    }else{
+      const buyQ=needQ-have, packs=Math.max(1,Math.ceil(buyQ/P0.per));
+      row.buy=pantryQty(id,buyQ);
+      row.note="Not in the price survey — please check the price in store";
+      if(have>0) row.partial=`~${unitAmt(have,P0.unit)} already in your pantry — buying the rest`;
+      else if(!st) row.firstTime=true;
+      row.track={key,need:needQ,unit:P0.unit,netAdd:Math.max(0,packs*P0.per-buyQ),cap:P0.per,name:P0.name};
+    }
+    pantryRows.push(row);
+  }
+  // restock suggestions the user accepted
+  (state.extraRows||[]).forEach(r=>{ if(r.price!=null) total+=r.price; (r.pantry?pantryRows:rows).push(r); });
+  return {rows,pantryRows,total,pantryCovered,mode:state.priceMode,store:state.store};
 }
+
+/* ----- low-stock prompts (<20% of capacity) ----- */
+function lowStockList(R){
+  const ps=pantryStore();
+  const buying=new Set([...R.rows,...R.pantryRows].filter(r=>r.track&&!r.inPantry).map(r=>r.track.key));
+  state.dismissedLow=state.dismissedLow||new Set();
+  return Object.keys(ps).map(k=>({key:k,...ps[k]}))
+    .filter(s=>s.cap>0 && s.have<0.2*s.cap && !buying.has(s.key) && !state.dismissedLow.has(s.key));
+}
+function renderLowStock(R){
+  const low=lowStockList(R), box=document.getElementById("lowStockBox");
+  box.innerHTML = low.length? `<div class="notice low-box"><b>Running low in your pantry:</b>
+    ${low.map(s=>`<span class="low-item">${s.name||s.key} — ${unitAmt(s.have,s.unit)} left (${Math.round(s.have/s.cap*100)}%)
+      <button class="btn-ghost" onclick="addRestock('${s.key}')">Add to list</button>
+      <button class="btn-ghost" onclick="dismissLow('${s.key}')">Not now</button></span>`).join("")}</div>`:"";
+}
+function dismissLow(key){ state.dismissedLow.add(key); renderShopping(); }
+function addRestock(key){
+  state.extraRows=state.extraRows||[];
+  if(state.extraRows.some(r=>r.track&&r.track.key===key)) return;
+  const st=stockOf(key); if(!st) return;
+  if(key.startsWith("food:")){
+    const id=key.slice(5), f=FOODS.find(x=>x.id===id); if(!f) return;
+    let best=null;
+    for(const s of STORES){ const e=f.prices[s]; if(e&&(!best||e.p<best.e.p)) best={s,e}; }
+    if(state.priceMode==="single"&&f.prices[state.store]) best={s:state.store,e:f.prices[state.store]};
+    if(!best) return;
+    state.extraRows.push({id:"restock_"+id,name:f.name,kg:(best.e.g/1000).toFixed(2),
+      buy:`1 × ${best.e.n} (${best.e.g} g)`,store:best.s,price:best.e.p,restock:true,
+      track:{key,need:0,unit:"g",netAdd:best.e.g,cap:best.e.g,name:f.name}});
+  }else{
+    const id=key.slice(7), P0=PANTRY[id]; if(!P0) return;
+    state.extraRows.push({id:"restock_"+id,name:P0.name,kg:null,buy:`1 ${P0.pack}`,store:null,price:null,
+      pantry:true,restock:true,note:"Not in the price survey — please check the price in store",
+      track:{key,need:0,unit:P0.unit,netAdd:P0.per,cap:P0.per,name:P0.name}});
+  }
+  state.dismissedLow.add(key);
+  renderShopping();
+}
+
+const statusTags=r=>
+  (r.inPantry?`<span class="pantry-tag">✓ In pantry</span>`:"")+
+  (r.firstTime?`<span class="first-tag">★ First one-off purchase — lasts beyond this plan</span>`:"")+
+  (r.restock?`<span class="first-tag">↻ Restock — running low</span>`:"")+
+  (r.partial?`<span class="hint-cell" style="display:block">${r.partial}</span>`:"");
 
 function renderShopping(){
   if(!state.plan) return;
   const R=computeShopRows(); state.shopRows=R;
+  renderLowStock(R);
   document.getElementById("shoppingBody").innerHTML =
-    `<table><thead><tr><th>Item</th><th>Total needed</th><th>Buy (cheapest brand)</th><th>Store</th><th style="text-align:right">Price (BBD)</th></tr></thead>
-     <tbody>${R.rows.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.kg} kg</td><td>${r.buy}</td>
-       <td>${r.note?`<span class="${r.note.startsWith("Not stocked")?"alt-cell":"note-cell"}">${r.note}</span>`:`<span class="store-tag">${r.store}</span>`}</td>
-       <td style="text-align:right">${r.price!=null?"$"+r.price.toFixed(2):"—"}</td></tr>`).join("")}
-     <tr class="total-row"><td colspan="4">Estimated total (${R.mode==="cheapest"?"cheapest mix of stores":R.store})</td>
+    `<table><thead><tr><th>Item</th><th>Total needed</th><th>Buy (cheapest brand)</th><th>Store / status</th><th style="text-align:right">Price (BBD)</th></tr></thead>
+     <tbody>${R.rows.map(r=>`<tr class="${r.inPantry?'row-pantry':''}"><td><b>${r.name}</b></td><td>${r.kg?r.kg+" kg":"—"}</td>
+       <td>${r.buy}${r.firstTime||r.restock||r.partial?"<br>"+statusTags({firstTime:r.firstTime,restock:r.restock,partial:r.partial}):""}</td>
+       <td>${r.inPantry?statusTags({inPantry:1}):(r.note?`<span class="${r.note.startsWith("Not stocked")?"alt-cell":"note-cell"}">${r.note}</span>`:`<span class="store-tag">${r.store}</span>`)}</td>
+       <td style="text-align:right">${r.price!=null?"$"+r.price.toFixed(2):(r.inPantry?"$0.00":"—")}</td></tr>`).join("")}
+     <tr class="total-row"><td colspan="4">Estimated total (${R.mode==="cheapest"?"cheapest mix of stores":R.store})${R.pantryCovered?` · ${R.pantryCovered} item${R.pantryCovered>1?"s":""} covered by your pantry`:""}</td>
      <td style="text-align:right">$${R.total.toFixed(2)}</td></tr></tbody></table>`+
     (R.pantryRows.length?`<div class="cat-title" style="margin-top:22px">Seasonings &amp; aromatics from the recipes</div>
-     <table><thead><tr><th>Item</th><th>Total needed</th><th>Note</th></tr></thead><tbody>
-     ${R.pantryRows.map(r=>`<tr><td><b>${r.name}</b></td><td>${r.buy}</td>
-       <td><span class="note-cell">${r.note}</span></td></tr>`).join("")}
+     <table><thead><tr><th>Item</th><th>Buy</th><th>Status</th></tr></thead><tbody>
+     ${R.pantryRows.map(r=>`<tr class="${r.inPantry?'row-pantry':''}"><td><b>${r.name}</b></td><td>${r.buy}</td>
+       <td>${r.inPantry?statusTags({inPantry:1}):(statusTags({firstTime:r.firstTime,restock:r.restock,partial:r.partial})||"")+`<span class="hint-cell">${r.note||""}</span>`}</td></tr>`).join("")}
      </tbody></table>
-     <p class="hint" style="margin-top:8px">These come from the recipe steps. The government survey doesn't track them, so they aren't in the total above — most cost a few dollars and last for weeks.</p>`:"");
+     <p class="hint" style="margin-top:8px">Seasonings aren't in the government survey, so they're priced in store and excluded from the total. Once bought, they live in your pantry and future plans draw them down automatically.</p>`:"");
 }
 
 function showPricesView(){
   document.getElementById("shoppingBody").classList.remove("hidden");
+  document.getElementById("lowStockBox").classList.remove("hidden");
   document.getElementById("priceControls").classList.remove("hidden");
   document.getElementById("checklistBody").classList.add("hidden");
   document.getElementById("shopNavPrices").classList.remove("hidden");
   document.getElementById("shopNavChecklist").classList.add("hidden");
   document.getElementById("shopTitle").textContent="Your shopping list";
 }
+/* undo a previous confirm's pantry draw-down (when the user edits & re-confirms) */
+function undoConsumption(c){
+  if(!c||!c.consumed) return;
+  c.consumed.forEach(x=>bumpStock(x.key,x.amt));
+  c.consumed=null;
+}
 function confirmList(){
   if(!state.shopRows) renderShopping();
-  state.checklist={rows:[...state.shopRows.rows,...state.shopRows.pantryRows],
+  undoConsumption(state.checklist);
+  const all=[...state.shopRows.rows,...state.shopRows.pantryRows];
+  // draw down what this plan uses from existing stock
+  const consumed=[];
+  all.forEach(r=>{
+    if(r.track&&r.track.need>0){
+      const st=stockOf(r.track.key);
+      if(st&&st.have>0){
+        const use=Math.min(st.have,r.track.need);
+        bumpStock(r.track.key,-use);
+        consumed.push({key:r.track.key,amt:use});
+      }
+    }
+  });
+  state.checklist={rows:all.filter(r=>!r.inPantry),
+                   inPantryRows:all.filter(r=>r.inPantry).map(r=>({name:r.name,note:r.note})),
                    total:state.shopRows.total,mode:state.shopRows.mode,
-                   store:state.shopRows.store,checked:{},savedAt:Date.now()};
+                   store:state.shopRows.store,checked:{},consumed,savedAt:Date.now()};
   persistChecklist(); renderChecklist();
+  toast(`List confirmed — ${state.checklist.rows.length} items to pick up.`);
 }
 function editList(){ showPricesView(); renderShopping(); }
 function persistChecklist(){
@@ -1333,12 +1689,37 @@ function restoreChecklistIfAny(){
 function toggleCheck(id){
   const c=state.checklist; if(!c) return;
   c.checked[id]=!c.checked[id];
-  persistChecklist(); renderChecklist();
+  const r=c.rows.find(x=>x.id===id);
+  if(r&&r.track){                                     // purchase in/out of the pantry
+    const delta=(c.checked[id]?1:-1)*(r.track.netAdd||0);
+    if(delta!==0||c.checked[id]) bumpStock(r.track.key, delta, c.checked[id]?r.track.cap:0, r.track.unit, r.track.name);
+  }
+  persistChecklist();
+  /* Update in place rather than re-rendering. A full innerHTML rebuild
+     replaces the row node mid-transition, so the strike-through and the
+     progress bar would snap to their end state instead of animating — and
+     this is the most-tapped control in the app, in a supermarket aisle. */
+  const row=document.querySelector(`.check-row[data-id="${id}"]`);
+  if(row) row.classList.toggle("done",!!c.checked[id]);
+  updateCheckProgress();
+}
+function updateCheckProgress(){
+  const c=state.checklist; if(!c) return;
+  const done=c.rows.filter(r=>c.checked[r.id]).length, total=c.rows.length;
+  const leftCost=c.rows.filter(r=>!c.checked[r.id]&&r.price!=null).reduce((s,r)=>s+r.price,0);
+  const bar=document.querySelector(".progressbar div");
+  if(bar) bar.style.transform=`scaleX(${total?done/total:0})`;
+  const meta=document.getElementById("checkCount");
+  if(meta) meta.textContent=`${done} of ${total}`;
+  const left=document.getElementById("checkLeft");
+  if(left) left.textContent=`$${leftCost.toFixed(2)}`;
+  if(total&&done===total) toast("Shopping list complete — every item picked up.","★");
 }
 function renderChecklist(){
   const c=state.checklist; if(!c) return;
   goView("planner"); goStep(7);
   document.getElementById("shoppingBody").classList.add("hidden");
+  document.getElementById("lowStockBox").classList.add("hidden");
   document.getElementById("priceControls").classList.add("hidden");
   document.getElementById("shopNavPrices").classList.add("hidden");
   document.getElementById("shopNavChecklist").classList.remove("hidden");
@@ -1349,17 +1730,25 @@ function renderChecklist(){
   document.getElementById("checklistBody").classList.remove("hidden");
   document.getElementById("checklistBody").innerHTML =
     `<div class="check-progress">
-       <div class="progressbar"><div style="width:${total?Math.round(done/total*100):0}%"></div></div>
-       <div class="check-meta"><b>${done} of ${total}</b> picked up · $${leftCost.toFixed(2)} left to spend · priced total $${c.total.toFixed(2)} BBD${c.rows.some(r=>r.pantry)?" (seasonings priced in store)":""}
+       <div class="progressbar"><div></div></div>
+       <div class="check-meta"><b id="checkCount">${done} of ${total}</b> picked up · <span id="checkLeft">$${leftCost.toFixed(2)}</span> left to spend · priced total $${c.total.toFixed(2)} BBD${c.rows.some(r=>r.pantry)?" (seasonings priced in store)":""}${c.inPantryRows&&c.inPantryRows.length?` · <span class="pantry-tag">✓ ${c.inPantryRows.length} already in pantry</span>`:""}
        ${signedIn?"":' · <span class="alt-cell">sign in to save this list</span>'}</div>
      </div>`+
-    c.rows.map(r=>`
-     <label class="check-row ${c.checked[r.id]?'done':''}">
+    (c.inPantryRows&&c.inPantryRows.length?`<div class="notice" style="margin-bottom:12px;background:#F2F8F3;border-color:#cfe3d4;color:#1c6b3a">
+      <b>Already in your pantry — nothing to buy:</b> ${c.inPantryRows.map(r=>r.name).join(", ")}</div>`:"")+
+    c.rows.map((r,i)=>`
+     <label class="check-row stagger-in ${c.checked[r.id]?'done':''}" data-id="${r.id}" style="--i:${Math.min(i,10)}">
        <input type="checkbox" ${c.checked[r.id]?"checked":""} onchange="toggleCheck('${r.id}')">
        <span class="ck-main"><b>${r.name}</b> — ${r.buy}
          ${r.note?`<span class="${r.pantry?'hint-cell':(r.note.startsWith('Not stocked')?'alt-cell':'note-cell')}">${r.note}</span>`:""}</span>
        <span class="ck-side">${r.store?`<span class="store-tag">${r.store}</span>`:""} ${r.price!=null?"$"+r.price.toFixed(2):""}</span>
      </label>`).join("");
+  /* fill the bar on the next frame so it sweeps from empty rather than
+     rendering pre-filled */
+  requestAnimationFrame(()=>{
+    const bar=document.querySelector(".progressbar div");
+    if(bar) bar.style.transform=`scaleX(${total?done/total:0})`;
+  });
 }
 
 /* =====================================================================
@@ -1376,6 +1765,7 @@ function addLog(){
   saveMe(m.data);
   document.getElementById("logWeight").value="";
   renderProgress();
+  toast(`Logged ${w.toFixed(1)} kg for ${d}.`);
 }
 function delLog(d){
   const m=me(); if(!m) return;
@@ -1398,8 +1788,8 @@ function progChartSVG(logs,goalW){
     ${yticks}
     ${gy!=null?`<line x1="${padL}" x2="${W-padR}" y1="${gy}" y2="${gy}" stroke="var(--gold)" stroke-width="2" stroke-dasharray="6 5"/>
     <text x="${W-padR}" y="${gy-6}" text-anchor="end" font-size="11" fill="#8a6414">goal ${goalW} kg</text>`:""}
-    <polyline points="${pts}" fill="none" stroke="var(--deep)" stroke-width="2.5" stroke-linejoin="round"/>
-    ${logs.map(l=>`<circle cx="${X(new Date(l.d).getTime())}" cy="${Y(l.w)}" r="4" fill="var(--deep)"/>`).join("")}
+    <polyline class="trend" points="${pts}" fill="none" stroke="var(--deep)" stroke-width="2.5" stroke-linejoin="round"/>
+    ${logs.map((l,i)=>`<circle class="stagger-in" style="--i:${i};animation-delay:calc(240ms + var(--i) * 40ms)" cx="${X(new Date(l.d).getTime())}" cy="${Y(l.w)}" r="4" fill="var(--deep)"/>`).join("")}
     <text x="${padL}" y="${H-8}" font-size="11" fill="var(--muted)">${logs[0].d}</text>
     <text x="${W-padR}" y="${H-8}" text-anchor="end" font-size="11" fill="var(--muted)">${logs[logs.length-1].d}</text>
   </svg>`;
@@ -1425,16 +1815,39 @@ function renderProgress(){
   }
   document.getElementById("progStats").innerHTML=stats;
   document.getElementById("progChart").innerHTML=progChartSVG(logs,goalW);
+  /* the draw-on needs the path's real length as its dash pattern */
+  const trend=document.querySelector("#progChart .trend");
+  if(trend) trend.style.setProperty("--len",trend.getTotalLength());
   document.getElementById("progList").innerHTML = logs.length?
     `<table style="margin-top:14px"><thead><tr><th>Date</th><th>Weight (kg)</th><th></th></tr></thead><tbody>`+
     [...logs].reverse().map(l=>`<tr><td>${l.d}</td><td>${l.w.toFixed(1)}</td>
       <td style="text-align:right"><button class="del-btn" onclick="delLog('${l.d}')" aria-label="Delete entry">✕</button></td></tr>`).join("")+
     `</tbody></table>` : (m?`<p class="hint">No entries yet — add your first weigh-in above.</p>`:"");
   const sh=m&&m.data.shopping;
+  renderPantryPanel();
   document.getElementById("progShopping").innerHTML = sh?
     `<div class="notice" style="margin-top:18px"><b>Saved shopping list</b> (${sh.rows.filter(r=>sh.checked[r.id]).length}/${sh.rows.length} picked · $${sh.total.toFixed(2)} BBD) —
      <button class="btn-ghost" onclick="state.checklist=me().data.shopping;renderChecklist()">Resume shopping</button></div>`:"";
 }
+
+function pantryPct(s){ return s.cap>0? Math.max(0,Math.min(100,Math.round(s.have/s.cap*100))) : 0; }
+function renderPantryPanel(){
+  const ps=pantryStore(), keys=Object.keys(ps);
+  const box=document.getElementById("progPantry"); if(!box) return;
+  if(!keys.length){ box.innerHTML=`<div class="cat-title" style="margin-top:22px">My pantry</div>
+    <p class="hint">Empty for now. When you tick off one-off purchases (oils, peanut butter, seasonings, sauces) on a shopping trip, they land here — and future plans use them up before asking you to buy more.</p>`; return; }
+  box.innerHTML=`<div class="cat-title" style="margin-top:22px">My pantry</div>`+
+   keys.map(k=>{const s=ps[k],pct=pantryPct(s);
+    return `<div class="pantry-row ${pct<20?'low':''}">
+      <div class="p-name"><b>${s.name||k}</b><span class="hint"> ${unitAmt(s.have,s.unit)} of ${unitAmt(s.cap,s.unit)} (${pct}%)${pct<20?" — running low":""}</span></div>
+      <div class="fill-bar"><div style="transform:scaleX(${pct/100})"></div></div>
+      <div class="p-actions">
+        <button class="btn-ghost" onclick="bumpStock('${k}',${s.cap});renderProgress();toast('${(s.name||k).replace(/'/g,"")} refilled.')">Refill</button>
+        <button class="del-btn" onclick="removePantry('${k}')" aria-label="Remove">✕</button>
+      </div></div>`;}).join("")+
+   `<p class="hint" style="margin-top:6px">Stock is drawn down each time you confirm a shopping list for a plan, and topped up when you tick purchases off in the aisle. Use Refill after an off-plan shop.</p>`;
+}
+function removePantry(k){ delete pantryStore()[k]; savePantry(); renderProgress(); }
 
 /* =====================================================================
    INIT

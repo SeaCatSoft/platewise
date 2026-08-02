@@ -26,6 +26,13 @@ optional Firebase accounts for cross-device sync.
   track are listed in a separate seasonings section, flagged to price in store
 - **Shopping checklist:** confirm the priced list and tick items off in the
   aisle, with a progress bar and a running "left to spend" total
+- **Virtual pantry:** one-off purchases (oils, peanut butter, seasonings,
+  sauces) are remembered with how much the pack contained. Future plans draw
+  stock down automatically, items you already have show as "✓ In pantry —
+  no purchase needed" (excluded from the total), brand-new staples are
+  flagged "★ First one-off purchase", and when anything drops below 20%
+  the app asks whether to add a restock to your list. Manage it all in
+  My Progress → My pantry (refill after off-plan shops, or remove items)
 - **Accounts & progress:** sign in (Firebase) to sync your weight log and
   checklist across devices; trend chart with your goal-weight line, working
   for both weight loss and muscle gain
@@ -58,7 +65,8 @@ Firebase to get real accounts:
      }
    }
    ```
-   (Each signed-in user can read and write only their own document.)
+   (Each signed-in user can read and write only their own document — the same
+   document now also stores their pantry.)
 6. Project overview → **⚙ Project settings → Your apps → Add app → Web (</>)**
    → register it (no hosting needed) → copy the `firebaseConfig` object.
 7. Open `index.html`, find the block marked **`FIREBASE CONFIG — PASTE YOURS
