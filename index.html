@@ -315,6 +315,11 @@ h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
 .eyebrow{
   font-size:.6875rem;font-weight:700;letter-spacing:.06em;
   text-transform:uppercase;color:var(--tint);margin-bottom:var(--sp-2);display:block}
+.report-head{
+  display:flex;justify-content:space-between;align-items:flex-start;
+  gap:var(--sp-5);flex-wrap:wrap;margin-bottom:var(--sp-2)}
+.report-head h2{margin-bottom:var(--sp-1)}
+.report-actions{display:flex;gap:8px;flex:none}
 @media(max-width:640px){
   .panel{padding:20px 18px;border-radius:var(--r-lg)}
   .wrap{padding:0 16px}
@@ -335,13 +340,13 @@ h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
    Enter and exit along the same path: forward comes from the right,
    Back comes from the left, so the direction of travel stays legible.
    ===================================================================== */
-#view-planner section.panel,#view-progress{
+#view-planner section.panel,#view-progress,#view-report{
   transition:opacity var(--dur-ui) var(--ease-out),
              transform var(--dur-ui) var(--ease-out)}
-section.panel[data-enter],#view-progress[data-enter]{opacity:0}
+section.panel[data-enter],#view-progress[data-enter],#view-report[data-enter]{opacity:0}
 section.panel[data-enter="fwd"]{transform:translate3d(16px,0,0)}
 section.panel[data-enter="back"]{transform:translate3d(-16px,0,0)}
-section.panel[data-enter="fade"],#view-progress[data-enter]{transform:translate3d(0,8px,0)}
+section.panel[data-enter="fade"],#view-progress[data-enter],#view-report[data-enter]{transform:translate3d(0,8px,0)}
 
 .stagger-in{
   opacity:0;transform:translate3d(0,10px,0);
@@ -787,7 +792,7 @@ details.recipe[open]::details-content{block-size:auto}
     animation-delay:0ms!important;transition-delay:0ms!important}
   /* keep opacity and colour — they're what makes a change legible.
      Drop position, scale and blur. */
-  section.panel[data-enter],#view-progress[data-enter],.stagger-in,
+  section.panel[data-enter],#view-progress[data-enter],#view-report[data-enter],.stagger-in,
   .sheet[data-enter],.toast[data-enter],.toast[data-leave]{transform:none!important}
   .sheet[data-enter],.toast[data-enter],.toast[data-leave]{filter:none!important}
   .sheet-scrim{transition:opacity 140ms!important}
@@ -808,11 +813,14 @@ details.recipe[open]::details-content{block-size:auto}
   .choice.on{border-width:2px}
 }
 @media print{
-  .topbar,.stepper,.nav-row,.week-tabs,.toolbar,button,.toast-viewport{display:none!important}
+  .topbar,.stepper,.nav-row,.week-tabs,.toolbar,button,.toast-viewport,.report-actions{display:none!important}
   body{background:#fff;color:#000}
   .panel{box-shadow:none;padding:0;background:none}
   .stagger-in{animation:none;opacity:1;transform:none}
   .chart-wrap .trend{animation:none;stroke-dashoffset:0}
+  /* the report is the one view meant to be printed/saved as a PDF —
+     keep each day whole rather than splitting it across a page break */
+  #view-report .day-card{break-inside:avoid;page-break-inside:avoid;margin-bottom:16px}
 }
 </style>
 </head>
@@ -1026,7 +1034,10 @@ details.recipe[open]::details-content{block-size:auto}
     <div id="planBody"></div>
     <p class="hint" style="margin-top:10px">Tap any meal's <b>Recipe</b> to open the full method. Every ingredient the recipes call for — including onion, garlic, thyme, lime and seasonings — is carried into your shopping list.</p>
     <div class="nav-row">
-      <button class="btn btn-secondary" onclick="goStep(5)">Adjust plan</button>
+      <div style="display:flex;gap:10px;flex-wrap:wrap">
+        <button class="btn btn-secondary" onclick="goStep(5)">Adjust plan</button>
+        <button class="btn btn-secondary" onclick="goView('report')">Client report</button>
+      </div>
       <button class="btn btn-primary" onclick="buildShopping()">Build shopping list</button>
     </div>
   </section>
@@ -1094,6 +1105,28 @@ details.recipe[open]::details-content{block-size:auto}
         <div id="progShopping"></div>
         <div id="progPantry"></div>
       </div>
+    </section>
+  </div>
+
+  <!-- CLIENT REPORT — a printable/shareable summary of the active
+       client's week: menu + macros, nothing interactive. The business
+       owner's own "send to client" mechanism is the browser's print
+       dialog (Save as PDF), not an email service. -->
+  <div id="view-report" class="hidden">
+    <section class="panel" id="reportPanel">
+      <div class="report-head">
+        <div>
+          <span class="eyebrow">Client report</span>
+          <h2 id="reportTitle">Weekly menu</h2>
+          <p class="lede" id="reportSubtitle"></p>
+        </div>
+        <div class="report-actions">
+          <button class="btn btn-secondary" onclick="goView('planner')">Back to plan</button>
+          <button class="btn btn-primary" onclick="window.print()">Print / Save as PDF</button>
+        </div>
+      </div>
+      <div class="week-tabs" id="reportWeekTabs"></div>
+      <div id="reportBody"></div>
     </section>
   </div>
 </main>
@@ -1536,7 +1569,8 @@ function goView(v,quiet){
   const changed = state.view!==v;
   state.view=v;
   const planner=document.getElementById("view-planner"),
-        progress=document.getElementById("view-progress");
+        progress=document.getElementById("view-progress"),
+        report=document.getElementById("view-report");
   planner.classList.toggle("hidden",v!=="planner");
   if(v==="progress"){
     /* unhide before rendering: the trend line measures its own path length,
@@ -1545,6 +1579,12 @@ function goView(v,quiet){
     renderProgress();
   }
   else progress.classList.add("hidden");
+  if(v==="report"){
+    if(!state.plan) return goView("planner",quiet);
+    if(changed) playEnter(report,"fade"); else report.classList.remove("hidden");
+    renderReport();
+  }
+  else report.classList.add("hidden");
   document.getElementById("navPlanner").classList.toggle("on",v==="planner");
   document.getElementById("navProgress").classList.toggle("on",v==="progress");
   if(!quiet && changed) window.scrollTo({top:0,behavior:"smooth"});
@@ -2115,6 +2155,40 @@ function renderPlan(){
             <ol>${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
           </details>
         </div>
+        ${mealMacroBreakdown(m.tot)}</div>`;}).join("")}
+    </div>`).join("");
+}
+
+/* =====================================================================
+   CLIENT REPORT — a printable/shareable weekly menu + macros summary.
+   Reuses recipeFor()'s output and the Phase 3 macro-breakdown component
+   rather than recomputing anything; "sending" it is the browser's own
+   print-to-PDF, not a backend service.
+   ===================================================================== */
+let reportWeek=0;
+function renderReport(){
+  if(!state.plan) return;
+  const T=state.targets, g=T.goal;
+  const clientName = Account.user ? Account.label() : null;
+  reportWeek=Math.min(reportWeek,state.plan.length-1);
+  const wkObj=state.plan[reportWeek], WT=wkObj.targets;
+  document.getElementById("reportTitle").textContent = clientName ? `${clientName} — weekly menu` : "Weekly menu";
+  document.getElementById("reportSubtitle").textContent =
+    `${g.name} · ${state.weeks} week${state.weeks>1?'s':''}, ${state.mealsPerDay} meal${state.mealsPerDay>1?'s':''}/day · `+
+    `daily target ${WT.kcal} kcal (P ${WT.protein}g · C ${WT.carbs}g · F ${WT.fat}g)`+
+    (DIETS[wkObj.diet].keto?" · keto week":"")+".";
+  document.getElementById("reportWeekTabs").innerHTML = state.plan.length>1 ? state.plan.map((wk,i)=>
+    `<button type="button" class="${i===reportWeek?'on':''}" onclick="reportWeek=${i};renderReport()">Week ${i+1} · ${DIETS[wk.diet].name}</button>`).join("") : "";
+  const DN=["Monday","Tuesday","Wednesday","Thursday","Friday","Saturday","Sunday"];
+  document.getElementById("reportBody").innerHTML = wkObj.days.map((d,di)=>`
+    <div class="day-card">
+      <div class="day-head"><b>${DN[di]}</b></div>
+      ${dayMacroBreakdown(d.dayTot,WT)}
+      ${d.meals.map((m,mi)=>{
+        const r=recipeFor(m, state.mealsPerDay===3&&mi===0);
+        return `<div class="meal">
+        <div class="m-name">${m.name}<div class="r-title">${r.title} · ${r.time}</div></div>
+        <div class="m-items">${m.items.map(([f,g])=>`${g} g ${f.name}`).join(" · ")}</div>
         ${mealMacroBreakdown(m.tot)}</div>`;}).join("")}
     </div>`).join("");
 }
