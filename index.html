@@ -647,6 +647,8 @@ footer{
   font-size:.625rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--tint);flex:none}
 .client-row-empty{font-size:.8125rem;color:var(--label-3);padding:6px 2px}
+.cloud-box{margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:var(--hair) solid var(--separator)}
+.cloud-box .auth-inner{grid-template-columns:1fr}
 .auth-note{font-size:.75rem;color:var(--label-3);margin-top:11px;line-height:1.5;letter-spacing:0}
 .auth-msg{
   font-size:.8125rem;font-weight:600;color:var(--coral);
@@ -847,28 +849,7 @@ details.recipe[open]::details-content{block-size:auto}
   <div class="sheet-scrim hidden" id="authScrim" onclick="toggleAuth()"></div>
   <div class="sheet hidden" id="authPanel" role="dialog" aria-modal="true">
     <div class="sheet-handle"></div>
-    <!-- CLOUD MODE (shown when a Firebase config is present) -->
-    <div id="authCloud" class="hidden">
-      <div class="auth-inner">
-        <div class="field">
-          <label>Email</label>
-          <input type="email" id="authEmail" autocomplete="username" placeholder="you@example.com">
-        </div>
-        <div class="field">
-          <label>Password <span class="hint">(6+ characters)</span></label>
-          <input type="password" id="authPass" autocomplete="current-password">
-        </div>
-        <div class="auth-actions">
-          <button class="btn btn-primary" onclick="cloudSignIn(false)">Sign in</button>
-          <button class="btn btn-secondary" onclick="cloudSignIn(true)">Create account</button>
-          <button class="btn-ghost" onclick="toggleAuth()">Close</button>
-          <button class="btn-ghost hidden" id="cloudSignOutBtn" onclick="doSignOut()">Sign out</button>
-        </div>
-      </div>
-      <p class="auth-msg" id="authMsg"></p>
-      <p class="auth-note">Accounts are handled by your Firebase project. Your weight log and shopping checklist sync to Firestore, so they follow you across devices.</p>
-    </div>
-    <!-- LOCAL MODE (no Firebase config yet) — doubles as the client roster -->
+    <!-- the client roster (always shown) -->
     <div id="authLocal">
       <span class="eyebrow">Clients</span>
       <h3 style="margin-bottom:10px">Switch client</h3>
@@ -882,8 +863,38 @@ details.recipe[open]::details-content{block-size:auto}
         <button class="btn btn-secondary" onclick="toggleAuth()">Close</button>
         <button class="btn-ghost hidden" id="localSignOutBtn" onclick="doSignOut()">Clear selection</button>
       </div>
-      <p class="auth-note"><b>Local mode</b> — no Firebase config detected, so clients live in this browser only. Each client keeps their own stats, plan, pantry and weight log. To enable cross-device cloud sync, paste your Firebase config into <code>index.html</code> (marked near the top of the script) — full steps in the README.</p>
     </div>
+    <!-- cloud backup (shown once the Firebase SDK has loaded) -->
+    <div id="authCloud" class="cloud-box hidden">
+      <span class="eyebrow">Cloud backup</span>
+      <div id="cloudSignedOut">
+        <p class="hint" style="margin-bottom:12px">Sign in to back every client up to your account and open them on any device.</p>
+        <div class="auth-inner">
+          <div class="field">
+            <label>Email</label>
+            <input type="email" id="authEmail" autocomplete="username" placeholder="you@example.com">
+          </div>
+          <div class="field">
+            <label>Password <span class="hint">(6+ characters)</span></label>
+            <input type="password" id="authPass" autocomplete="current-password">
+          </div>
+          <div class="auth-actions">
+            <button class="btn btn-primary" onclick="cloudSignIn(false)">Sign in</button>
+            <button class="btn btn-secondary" onclick="cloudSignIn(true)">Create account</button>
+          </div>
+        </div>
+      </div>
+      <div id="cloudSignedIn" class="hidden">
+        <p style="font-weight:600;margin-bottom:2px">Signed in as <span id="cloudWho"></span></p>
+        <p class="hint" id="cloudStatus"></p>
+        <div class="auth-actions" style="margin-top:10px">
+          <button class="btn btn-secondary" onclick="Cloud.syncNow()">Sync now</button>
+          <button class="btn-ghost" onclick="cloudSignOut()">Sign out</button>
+        </div>
+      </div>
+      <p class="auth-msg" id="authMsg"></p>
+    </div>
+    <p class="auth-note" id="localNote"></p>
   </div>
 
   <div id="view-planner">
@@ -1274,12 +1285,13 @@ const VEGAN_PROTEINS = ["soya_chunks","split_peas","pigeon_peas_dry","blackeye_p
    the app runs in local mode (browser-only profiles).
    ===================================================================== */
 const FIREBASE_CONFIG = {
-  apiKey: "PASTE_YOUR_API_KEY",
-  authDomain: "your-project.firebaseapp.com",
-  projectId: "your-project",
-  storageBucket: "your-project.appspot.com",
-  messagingSenderId: "0",
-  appId: "PASTE_YOUR_APP_ID"
+  apiKey: "AIzaSyDpSMuxfknaAXyLZzK2NHfLc7s4Zs5acYw",
+  authDomain: "platewise-cda78.firebaseapp.com",
+  projectId: "platewise-cda78",
+  storageBucket: "platewise-cda78.firebasestorage.app",
+  messagingSenderId: "121900757451",
+  appId: "1:121900757451:web:b618d31d4a19e99acf464e",
+  measurementId: "G-P182Y33WC7"
 };
 
 /* =====================================================================
@@ -1301,19 +1313,72 @@ const DB = {
             return (k in this.mem)?this.mem[k]:d; },
   set(k,v){ this.mem[k]=v; try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
 };
+/* Cloud backup. The browser copy (pw_profiles) stays the working copy; when
+   the owner is signed in, every client is mirrored to Firestore at
+   users/{uid}/clients/{name} as {name, json, updatedAt}. The record is a JSON
+   string because Firestore rejects nested arrays. On sign-in the newer copy of
+   each client wins, and clients that exist on only one side are copied over. */
+const Cloud = {
+  ready:false, user:null, _t:{},
+  id:name=>encodeURIComponent(name),
+  setStatus(t){ const el=document.getElementById("cloudStatus"); if(el) el.textContent=t||""; },
+  push(name,data){
+    if(!this.user||!window.FB) return;
+    clearTimeout(this._t[name]);
+    this._t[name]=setTimeout(async()=>{
+      try{
+        await window.FB.saveClient(this.user.uid,this.id(name),
+          {name,json:JSON.stringify(data),updatedAt:data.updatedAt||Date.now()});
+        this.setStatus("Backed up at "+new Date().toLocaleTimeString());
+      }catch(e){ this.setStatus("Couldn't back up: "+(e.code||e.message||e)); }
+    },700);
+  },
+  async pull(){
+    if(!this.user||!window.FB) return;
+    if(Account.user) syncAccountData();               // don't let a download clobber unsaved edits
+    this.setStatus("Syncing…");
+    const remote=await window.FB.listClients(this.user.uid);
+    const p=DB.get("pw_profiles",{}), seen=new Set();
+    let down=0, up=0, activeChanged=false;
+    for(const r of remote){
+      let blob; try{ blob=JSON.parse(r.json); }catch(e){ continue; }
+      const name=r.name||blob.name; if(!name) continue;
+      seen.add(name);
+      const local=p[name], lt=local?(local.updatedAt||0):-1, rt=blob.updatedAt||r.updatedAt||0;
+      if(!local || rt>lt){
+        p[name]=Object.assign(Account.blank(),blob); down++;
+        if(Account.user && Account.user.name===name) activeChanged=true;
+      }else if(lt>rt){ this.push(name,local); up++; }
+    }
+    for(const name of Object.keys(p)) if(!seen.has(name)){
+      p[name].updatedAt=p[name].updatedAt||Date.now();
+      this.push(name,p[name]); up++;
+    }
+    DB.set("pw_profiles",p);
+    if(activeChanged){
+      Account.data=p[Account.user.name];
+      applyClientSnapshot(Account.data); renderStepper();
+      if(state.plan) renderPlan();
+    }
+    refreshAuthUI(); renderProgress();
+    this.setStatus(`Synced at ${new Date().toLocaleTimeString()} — ${down} downloaded, ${up} uploaded`);
+    return {down,up};
+  },
+  async syncNow(){
+    try{ await this.pull(); }
+    catch(e){ this.setStatus("Sync failed: "+(e.code||e.message||e)); }
+  }
+};
 const Account = {
-  mode:"local", user:null, data:null,
+  user:null, data:null,
   blank(){ return {...DEFAULT_CLIENT_FIELDS,logs:[],shopping:null,pantry:{}}; },
-  label(){ return this.user ? (this.mode==="cloud"?this.user.email:this.user.name) : null; },
+  label(){ return this.user ? this.user.name : null; },
   async persist(){
     if(!this.user||!this.data) return;
-    if(this.mode==="cloud"){
-      try{ await window.FB.save(this.user.uid,this.data); }
-      catch(e){ authMsg("Couldn't sync to Firebase: "+(e.message||e)); }
-    }else{
-      const p=DB.get("pw_profiles",{}); p[this.user.name]=this.data; DB.set("pw_profiles",p);
-      DB.set("pw_active",this.user.name);
-    }
+    this.data.updatedAt=Date.now();
+    const p=DB.get("pw_profiles",{}); p[this.user.name]=this.data; DB.set("pw_profiles",p);
+    DB.set("pw_active",this.user.name);
+    Cloud.push(this.user.name,this.data);
   }
 };
 /* shims used throughout the app */
@@ -1323,11 +1388,30 @@ function saveMe(data){ Account.data=data; Account.persist(); }
 /* ---- client switching: snapshot the wizard's live state into a plain
         object, or push a saved snapshot back into the wizard. The only
         two places that are allowed to know the full field list. ---- */
+/* A plan is stored with food ids, not food objects: the objects carry every
+   store's price list, which made one client's plan several MB. */
+function packTargets(t){ return t ? {...t, goal:(t.goal&&t.goal.id)?t.goal.id:t.goal} : t; }
+function unpackTargets(t){
+  if(!t) return t;
+  const gid = typeof t.goal==="string" ? t.goal : (t.goal&&t.goal.id);
+  return {...t, goal: GOALS.find(g=>g.id===gid) || t.goal};
+}
+function packPlan(plan){
+  return plan && plan.map(w=>({diet:w.diet, targets:packTargets(w.targets),
+    days:w.days.map(d=>({dayTot:d.dayTot, meals:d.meals.map(m=>({name:m.name, diet:m.diet, tot:m.tot,
+      items:m.items.map(([f,g])=>[f.id,g])}))}))}));
+}
+function unpackPlan(plan){
+  if(!plan) return plan;
+  return plan.map(w=>({diet:w.diet, targets:unpackTargets(w.targets),
+    days:w.days.map(d=>({dayTot:d.dayTot, meals:d.meals.map(m=>({name:m.name, diet:m.diet, tot:m.tot,
+      items:m.items.map(([f,g])=>[FOODS.find(x=>x.id===(typeof f==="string"?f:f&&f.id)),g]).filter(([f])=>f)}))}))}));
+}
 function clientSnapshot(){
   return {
     sex:state.sex, bodyType:state.bodyType, goal:state.goal, liked:[...state.liked],
     weeks:state.weeks, mealsPerDay:state.mealsPerDay, diet:state.diet, dietMode:state.dietMode,
-    weekDiets:state.weekDiets, plan:state.plan, targets:state.targets,
+    weekDiets:state.weekDiets, plan:packPlan(state.plan), targets:packTargets(state.targets),
     age:+document.getElementById("age").value, height:+document.getElementById("height").value,
     weight:+document.getElementById("weight").value, goalWeight:+document.getElementById("goalWeight").value,
     activity:document.getElementById("activity").value
@@ -1344,7 +1428,7 @@ function applyClientSnapshot(data){
   const d=Object.assign({},DEFAULT_CLIENT_FIELDS,data||{});
   state.sex=d.sex; state.bodyType=d.bodyType; state.goal=d.goal; state.liked=new Set(d.liked||[]);
   state.weeks=d.weeks; state.mealsPerDay=d.mealsPerDay; state.diet=d.diet; state.dietMode=d.dietMode;
-  state.weekDiets=d.weekDiets; state.plan=d.plan; state.targets=d.targets;
+  state.weekDiets=d.weekDiets; state.plan=unpackPlan(d.plan); state.targets=unpackTargets(d.targets);
   document.getElementById("age").value=d.age;
   document.getElementById("height").value=d.height;
   document.getElementById("weight").value=d.weight;
@@ -1419,16 +1503,17 @@ function toast(msg,mark){
   t.addEventListener("click",()=>{clearTimeout(timer);close();});
 }
 function refreshAuthUI(){
-  const cloud=Account.mode==="cloud";
-  document.getElementById("authCloud").classList.toggle("hidden",!cloud);
-  document.getElementById("authLocal").classList.toggle("hidden",cloud);
   document.getElementById("profileBtn").textContent = Account.user? ("👤 "+Account.label()) : "Clients";
-  if(cloud){
-    document.getElementById("cloudSignOutBtn").classList.toggle("hidden",!Account.user);
-  }else{
-    renderClientList();
-    document.getElementById("localSignOutBtn").classList.toggle("hidden",!Account.user);
-  }
+  renderClientList();
+  document.getElementById("localSignOutBtn").classList.toggle("hidden",!Account.user);
+  document.getElementById("authCloud").classList.toggle("hidden",!Cloud.ready);
+  document.getElementById("cloudSignedOut").classList.toggle("hidden",!!Cloud.user);
+  document.getElementById("cloudSignedIn").classList.toggle("hidden",!Cloud.user);
+  if(Cloud.user) document.getElementById("cloudWho").textContent=Cloud.user.email;
+  document.getElementById("localNote").innerHTML = !Cloud.ready
+    ? "<b>Local mode</b> — clients are kept in this browser only. Each client keeps their own stats, plan, pantry and weight log."
+    : (Cloud.user ? "Every change is backed up to your account automatically; this browser keeps a working copy too."
+                  : "Clients are kept in this browser until you sign in to the cloud backup above.");
 }
 function renderClientList(){
   const box=document.getElementById("clientList"); if(!box) return;
@@ -1488,9 +1573,13 @@ async function cloudSignIn(create){
   try{ create? await window.FB.signUp(e,p) : await window.FB.signIn(e,p); }
   catch(err){ authMsg(FB_ERRORS[err.code]||err.message||"Sign-in failed."); }
 }
+async function cloudSignOut(){
+  try{ await window.FB.signOut(); }catch(e){}
+  Cloud.user=null; Cloud.setStatus(""); authMsg("");
+  refreshAuthUI();
+}
 async function doSignOut(){
   if(Account.user) syncAccountData();
-  if(Account.mode==="cloud"){ try{await window.FB.signOut();}catch(e){} }
   Account.user=null; Account.data=null;
   DB.set("pw_active",null);
   applyClientSnapshot(null);
@@ -1504,26 +1593,20 @@ function afterSignInRefresh(){
   refreshAuthUI(); renderProgress(); restoreChecklistIfAny();
 }
 /* Firebase module (bottom of page) calls these */
-window.onFirebaseReady = ()=>{ Account.mode="cloud"; refreshAuthUI(); };
-window.onFirebaseAuth = async (u)=>{
-  if(u){
-    Account.mode="cloud"; Account.user=u;
-    try{ Account.data=(await window.FB.load(u.uid)) || Account.blank();
-         if(!Account.data.pantry) Account.data.pantry={}; }
-    catch(e){ Account.data=Account.blank(); authMsg("Signed in, but couldn't load your data: "+(e.message||e)); return afterSignInRefresh(); }
-    authMsg("Signed in as "+u.email,true);
-    applyClientSnapshot(Account.data);
-    closeAuthSheet();
-    afterSignInRefresh();
-    renderStepper();
-    goStep(state.plan?6:1);
-    if(state.plan) renderPlan();
-  }else if(Account.mode==="cloud"&&Account.user){
-    Account.user=null; Account.data=null;
-    refreshAuthUI(); renderProgress();
+window.onFirebaseReady = ()=>{ Cloud.ready=true; refreshAuthUI(); };
+window.onFirebaseAuth = async u=>{
+  Cloud.user=u||null;
+  refreshAuthUI();
+  if(!u) return;
+  authMsg("");
+  try{ const r=await Cloud.pull(); toast(`Synced with your account (${r.down} down, ${r.up} up).`,"☁"); }
+  catch(e){
+    const msg=(e.code||e.message||String(e));
+    Cloud.setStatus("Signed in, but couldn't sync: "+msg);
+    authMsg("Signed in, but couldn't sync: "+msg);
   }
 };
-/* restore last local profile on load (cloud mode restores via onFirebaseAuth) */
+/* restore the last active client on load */
 (function(){ const n=DB.get("pw_active",null);
   if(n){ const p=DB.get("pw_profiles",{}); if(p[n]){ Account.user={name:n}; Account.data=p[n]; } } })();
 
@@ -3076,7 +3159,7 @@ if(Account.user && Account.data){
 
 </script>
 <script type="module">
-/* Loads Firebase only when a real config has been pasted above. */
+/* Loads Firebase only when a real config has been pasted above (otherwise the app stays local-only). */
 const cfg = FIREBASE_CONFIG;
 if (cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
   try {
@@ -3084,7 +3167,7 @@ if (cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
     const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,
             onAuthStateChanged, signOut, setPersistence, browserLocalPersistence } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js");
-    const { getFirestore, doc, getDoc, setDoc } =
+    const { getFirestore, doc, setDoc, collection, getDocs } =
       await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js");
     const app  = initializeApp(cfg);
     const auth = getAuth(app);
@@ -3094,8 +3177,11 @@ if (cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
       signUp : (e,p)=>createUserWithEmailAndPassword(auth,e,p),
       signIn : (e,p)=>signInWithEmailAndPassword(auth,e,p),
       signOut: ()=>signOut(auth),
-      load   : async uid=>{ const s=await getDoc(doc(db,"users",uid)); return s.exists()?s.data():null; },
-      save   : (uid,data)=>setDoc(doc(db,"users",uid), JSON.parse(JSON.stringify(data)))
+      listClients: async uid=>{
+        const s=await getDocs(collection(db,"users",uid,"clients"));
+        return s.docs.map(d=>({id:d.id,...d.data()}));
+      },
+      saveClient : (uid,id,payload)=>setDoc(doc(db,"users",uid,"clients",id),payload)
     };
     window.onFirebaseReady();
     onAuthStateChanged(auth, u=>window.onFirebaseAuth(u));

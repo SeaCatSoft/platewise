@@ -33,8 +33,9 @@ optional Firebase accounts for cross-device sync.
   flagged "★ First one-off purchase", and when anything drops below 20%
   the app asks whether to add a restock to your list. Manage it all in
   My Progress → My pantry (refill after off-plan shops, or remove items)
-- **Accounts & progress:** sign in (Firebase) to sync your weight log and
-  checklist across devices; trend chart with your goal-weight line, working
+- **Clients & progress:** a client roster with each client's own stats, plan,
+  pantry and weight log, optionally backed up to your Firebase account and
+  usable on any device; trend chart with your goal-weight line, working
   for both weight loss and muscle gain
 
 ## Deploy to GitHub Pages
@@ -42,10 +43,10 @@ optional Firebase accounts for cross-device sync.
 2. **Settings → Pages** → Deploy from a branch → `main` / `/ (root)` → Save.
 3. Your app is live at `https://<username>.github.io/<repo>/`.
 
-The app works immediately in **local mode** (browser-only profiles). Connect
-Firebase to get real accounts:
+The app works immediately in **local mode** (clients are kept in the
+browser). Connect Firebase to back every client up to your own account:
 
-## Connect your Firebase project (accounts + sync)
+## Connect your Firebase project (cloud backup)
 1. Go to [console.firebase.google.com](https://console.firebase.google.com) →
    **Add project** (Analytics optional — you can turn it off).
 2. **Build → Authentication → Get started → Sign-in method** → enable
@@ -54,19 +55,19 @@ Firebase to get real accounts:
    → add `<username>.github.io`.
 4. **Build → Firestore Database → Create database** → production mode →
    choose a region → Create.
-5. Firestore → **Rules** tab → replace the rules with the block below → Publish:
+5. Firestore → **Rules** tab → replace the rules with the contents of
+   [`firestore.rules`](firestore.rules) → Publish:
    ```
    rules_version = '2';
    service cloud.firestore {
      match /databases/{database}/documents {
-       match /users/{uid} {
+       match /users/{uid}/clients/{clientId} {
          allow read, write: if request.auth != null && request.auth.uid == uid;
        }
      }
    }
    ```
-   (Each signed-in user can read and write only their own document — the same
-   document now also stores their pantry.)
+   (Each signed-in owner can read and write only their own clients.)
 6. Project overview → **⚙ Project settings → Your apps → Add app → Web (</>)**
    → register it (no hosting needed) → copy the `firebaseConfig` object.
 7. Open `index.html`, find the block marked **`FIREBASE CONFIG — PASTE YOURS
@@ -74,8 +75,12 @@ Firebase to get real accounts:
    config. Commit and push.
 
 That's it. The app detects a real config, loads the Firebase SDK from Google's
-CDN, and switches the Sign in panel to email/password accounts. Each user's
-data lives at `users/{their-uid}` in Firestore: `{ logs: [...], shopping: {...} }`.
+CDN, and shows a **Cloud backup** sign-in under the client list. Signed in,
+every client is mirrored to `users/{uid}/clients/{client name}` in Firestore
+as `{ name, json, updatedAt }` (the client's whole record is stored as a JSON
+string, because Firestore doesn't allow nested arrays). The browser keeps a
+working copy, so the app still works offline. On sign-in the newer copy of
+each client wins, and clients that exist on only one side are copied across.
 If the config is missing or Firebase fails to load, the app quietly stays in
 local mode — nothing breaks.
 
