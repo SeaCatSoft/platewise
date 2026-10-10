@@ -491,19 +491,32 @@ select{
   background:none;color:var(--label);
   font-size:.9375rem;font-weight:700;letter-spacing:-.02em;
   border-bottom:var(--hair) solid var(--separator)}
-.day-head .macros{
-  font-size:.75rem;font-weight:500;color:var(--label-3);
-  letter-spacing:0;font-variant-numeric:tabular-nums}
 .meal{
   padding:13px 16px;border-top:var(--hair) solid var(--separator);
   display:flex;gap:12px;align-items:flex-start;flex-wrap:wrap}
 .meal:first-of-type{border-top:none}
 .meal .m-name{font-weight:600;font-size:.9375rem;letter-spacing:-.015em;min-width:140px;flex:1}
 .meal .m-items{flex:2.5;font-size:.8125rem;color:var(--label-3);min-width:210px;letter-spacing:0}
-.meal .m-macros{
-  font-size:.75rem;font-weight:600;color:var(--tint);
-  background:var(--tint-soft);border-radius:var(--r-sm);
-  padding:5px 9px;white-space:nowrap;font-variant-numeric:tabular-nums}
+
+/* ---- macro breakdown: a proportional protein/carb/fat bar plus the
+        numbers, shared by the per-day header and each per-meal row ---- */
+.macro-breakdown{padding:10px 16px 12px;border-top:var(--hair) solid var(--separator)}
+.macro-bar{
+  display:flex;height:6px;border-radius:var(--r-pill);overflow:hidden;
+  background:var(--fill);margin-bottom:8px}
+.macro-bar div:nth-child(1){background:var(--tint)}
+.macro-bar div:nth-child(2){background:var(--gold)}
+.macro-bar div:nth-child(3){background:var(--coral)}
+.macro-stats{
+  display:flex;flex-wrap:wrap;gap:4px 14px;font-size:.75rem;color:var(--label-3);
+  letter-spacing:0;font-variant-numeric:tabular-nums}
+.macro-stats .ms-item b{font-weight:700;color:var(--label)}
+.macro-stats .ms-item i{font-style:normal;color:var(--label-4);margin-left:2px}
+.macro-stats .ms-kcal{font-weight:700;color:var(--label)}
+.meal .macro-breakdown{
+  flex:1 1 100%;order:3;padding:8px 0 0;border-top:none;margin-top:2px}
+.meal .macro-breakdown .macro-bar{height:4px;margin-bottom:6px;max-width:260px}
+.meal .macro-breakdown .macro-stats{font-size:.6875rem;gap:3px 10px}
 
 .week-tabs{display:flex;gap:7px;margin:16px 0;flex-wrap:wrap}
 .week-tabs button{
@@ -1881,6 +1894,33 @@ function sweepRings(){
     .forEach(c=>c.setAttribute("stroke-dashoffset",c.dataset.off)));
 }
 
+/* ---- macro breakdown: reused for both a day's totals and a single meal ---- */
+function macroBarHTML(m){
+  const cal=m.p*4+m.c*4+m.f*9 || 1;
+  const p=Math.max(0,m.p*4/cal*100), c=Math.max(0,m.c*4/cal*100), f=Math.max(0,m.f*9/cal*100);
+  return `<div class="macro-bar"><div style="width:${p.toFixed(1)}%"></div><div style="width:${c.toFixed(1)}%"></div><div style="width:${f.toFixed(1)}%"></div></div>`;
+}
+function dayMacroBreakdown(dayTot,target){
+  const pct=(v,t)=>t?Math.round(v/t*100):0;
+  return `<div class="macro-breakdown">${macroBarHTML(dayTot)}
+    <div class="macro-stats">
+      <span class="ms-item ms-kcal">${fmt(dayTot.k)} kcal</span>
+      <span class="ms-item"><b>${fmt(dayTot.p)}g</b> protein<i>${pct(dayTot.p,target.protein)}%</i></span>
+      <span class="ms-item"><b>${fmt(dayTot.c)}g</b> carbs<i>${pct(dayTot.c,target.carbs)}%</i></span>
+      <span class="ms-item"><b>${fmt(dayTot.f)}g</b> fat<i>${pct(dayTot.f,target.fat)}%</i></span>
+      <span class="ms-item">${fmt(dayTot.fib)}g fibre</span>
+    </div></div>`;
+}
+function mealMacroBreakdown(tot){
+  return `<div class="macro-breakdown">${macroBarHTML(tot)}
+    <div class="macro-stats">
+      <span class="ms-item ms-kcal">${fmt(tot.k)} kcal</span>
+      <span class="ms-item"><b>${fmt(tot.p)}g</b> protein</span>
+      <span class="ms-item"><b>${fmt(tot.c)}g</b> carbs</span>
+      <span class="ms-item"><b>${fmt(tot.f)}g</b> fat</span>
+    </div></div>`;
+}
+
 function renderPlan(){
   const T=state.targets,g=T.goal;
   activeWeek=Math.min(activeWeek,state.plan.length-1);
@@ -1908,7 +1948,8 @@ function renderPlan(){
     `<div class="week-summary"><b>Week ${activeWeek+1} (${dietName}) totals:</b> ${macroStr(wkTot)} · fibre ${fmt(wkTot.fib)}g
       &nbsp;|&nbsp; daily average ${macroStr({k:wkTot.k/7,p:wkTot.p/7,c:wkTot.c/7,f:wkTot.f/7})}${DIETS[wkObj.diet].keto?" &nbsp;|&nbsp; keto week: carbs held near 50 g/day":""}</div>`+
     wk.map((d,di)=>`<div class="day-card stagger-in" style="--i:${di}">
-      <div class="day-head"><b>${DN[di]}</b><span class="macros">${macroStr(d.dayTot)} · fibre ${fmt(d.dayTot.fib)}g</span></div>
+      <div class="day-head"><b>${DN[di]}</b></div>
+      ${dayMacroBreakdown(d.dayTot,WT)}
       ${d.meals.map((m,mi)=>{
         const r=recipeFor(m, state.mealsPerDay===3&&mi===0);
         return `<div class="meal">
@@ -1918,7 +1959,7 @@ function renderPlan(){
             <ol>${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
           </details>
         </div>
-        <div class="m-macros">${macroStr(m.tot)}</div></div>`;}).join("")}
+        ${mealMacroBreakdown(m.tot)}</div>`;}).join("")}
     </div>`).join("");
 }
 
