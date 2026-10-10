@@ -674,6 +674,7 @@ details.recipe summary::before{
 details.recipe[open] summary::before{transform:rotate(45deg)}
 details.recipe ol{padding:2px 16px 12px 32px;font-size:.8125rem;color:var(--label-2);letter-spacing:0}
 details.recipe li{margin-bottom:5px;line-height:1.5}
+.recipe-swaps{padding:0 16px 12px;font-size:.75rem;line-height:1.5;color:var(--label-3);letter-spacing:0}
 /* animated disclosure where supported; degrades to an instant open elsewhere */
 details.recipe::details-content{
   block-size:0;overflow:hidden;
@@ -1199,6 +1200,14 @@ const FOODS = [
  {id:"cheddar",name:"Cheddar cheese",cat:"Fats & pantry",role:"fat",std:false,gi:"low",per100:{k:403,p:23,c:1.3,f:33,fib:0},prices:{"Cherish Supermarket":{p:18.25,g:1000,n:"New Zealand Cheddar Cheese 1kg"},"Eddies Supermarket":{p:28.99,g:1000,n:"Anchor Cheddar Cheese 1kg"},"Fair Deals Supermarkets":{p:20.7,g:1000,n:"New Zealand Cheddar Cheese 1kg"},"Jordans Supermarkets":{p:30.4,g:1000,n:"Anchor Cheddar Cheese 1kg"},"Lionel C Hill Supermarket":{p:22.71,g:1000,n:"New Zealand Cheddar Cheese 1kg"},"People's Market":{p:17.99,g:1000,n:"English Cheddar Cheese 1kg"},"Popular Discount Supermarkets":{p:17.99,g:1000,n:"English Cheddar Cheese 1kg"},"Price Lo":{p:16.99,g:1000,n:"English Cheddar Cheese 1kg"}}},
  {id:"milk_2pct",name:"Low-fat milk (2%)",cat:"Fats & pantry",role:"fat",std:true,gi:"low",per100:{k:50,p:3.4,c:5,f:2,fib:0},prices:{"Aone Supermarkets":{p:8.25,g:1000,n:"Pine Hill Diary 2% Low Fat Milk 1L"},"Channell Supermarkets":{p:8.89,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Cherish Supermarket":{p:7.99,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Eddies Supermarket":{p:8.99,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Fair Deals Supermarkets":{p:8.9,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Jordans Supermarkets":{p:8.15,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Lionel C Hill Supermarket":{p:8.73,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Massy Stores":{p:8.29,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Popular Discount Supermarkets":{p:7.99,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Price Lo":{p:7.99,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Roxy Supermarket":{p:8.55,g:1000,n:"Pine Hill Diary 2% Low Fat Milk 1L"},"Savings Plus Supermarkets":{p:8.99,g:1000,n:"Pine Hill Dairy 2% Milk 1L"},"Trimart Supermarkets":{p:8.89,g:1000,n:"Pine Hill Dairy 2% Milk 1L"}}},
  {id:"whole_milk",name:"Whole milk",cat:"Fats & pantry",role:"fat",std:false,gi:"low",per100:{k:61,p:3.2,c:4.8,f:3.3,fib:0},prices:{"Cherish Supermarket":{p:7.99,g:1000,n:"Pine Hill Dairy Whole Milk 1L"},"Fair Deals Supermarkets":{p:8.9,g:1000,n:"Pine Hill Dairy Whole Milk 1L"},"Lionel C Hill Supermarket":{p:8.73,g:1000,n:"Pine Hill Dairy Whole Milk 1L"},"Price Lo":{p:8.29,g:1000,n:"Pine Hill Dairy Whole Milk 1L"}}},
+ {id:"pork_shoulder",name:"Pork shoulder",cat:"Proteins",role:"protein",std:false,gi:"low",per100:{k:225,p:17,c:0,f:17,fib:0},prices:{"Aone Supermarkets":{p:32.85,g:1000,n:"Pork Shoulder 1kg"},"Channell Supermarkets":{p:23.75,g:1000,n:"Pork Shoulder 1kg"},"Jordans Supermarkets":{p:20.49,g:1000,n:"Pork Shoulder 1kg"},"Popular Discount Supermarkets":{p:19.75,g:1000,n:"Pork Shoulder 1kg"},"Roxy Supermarket":{p:24.75,g:1000,n:"Pork Shoulder 1kg"},"Savings Plus Supermarkets":{p:22.99,g:1000,n:"Pork Shoulder 1kg"},"Trimart Supermarkets":{p:23.78,g:1000,n:"Pork Shoulder 1kg"}}},
+ /* ---- pantry-role staples: never picked as a plated food, only called for
+    by recipes (stock, thickener, sweetener, protein boost) and tracked in
+    the virtual pantry like oil and peanut butter ---- */
+ {id:"stock_cubes",name:"Chicken stock cubes",cat:"Fats & pantry",role:"pantry",std:false,gi:"low",per100:{k:230,p:12,c:20,f:10,fib:0},prices:{"Aone Supermarkets":{p:6.05,g:100,n:"Maggie Chicken Cubes 100g"},"Massy Stores":{p:5.35,g:100,n:"Maggie Chicken Cubes 100g"},"Popular Discount Supermarkets":{p:5.35,g:100,n:"Maggie Chicken Cubes 100g"},"Roxy Supermarket":{p:5.7,g:100,n:"Maggie Chicken Cubes 100g"},"Savings Plus Supermarkets":{p:5.7,g:100,n:"Maggie Chicken Cubes 100g"}}},
+ {id:"flour",name:"Plain flour",cat:"Fats & pantry",role:"pantry",std:false,gi:"high",per100:{k:364,p:10,c:76,f:1,fib:2.7},prices:{"Aone Supermarkets":{p:4.7,g:1000,n:"Easy Bake White Flour 1kg"},"Cherish Supermarket":{p:6.99,g:2000,n:"Bajan Pride White Flour 2kg"},"Eddies Supermarket":{p:5.3,g:1000,n:"Bajan Pride White Flour 1kg"},"Fair Deals Supermarkets":{p:8.1,g:2000,n:"Easy Bake White Flour 2kg"},"Jordans Supermarkets":{p:6.75,g:2000,n:"Bajan Pride White Flour 2kg"},"Lionel C Hill Supermarket":{p:8.24,g:2000,n:"Easy Bake White Flour 2kg"},"Massy Stores":{p:4.25,g:1000,n:"Bajan Pride White Flour 1kg"},"People's Market":{p:8.53,g:2000,n:"Easy Bake White Flour 2kg"},"Popular Discount Supermarkets":{p:3.99,g:1000,n:"Bajan Pride White Flour 1kg"},"Roxy Supermarket":{p:4.3,g:1000,n:"Bajan Pride White Flour 1kg"},"Savings Plus Supermarkets":{p:7.85,g:2000,n:"Purity Enriched Flour 2kg"},"Trimart Supermarkets":{p:9.55,g:2000,n:"Carib Isle White Flour 2kg"}}},
+ {id:"honey",name:"Honey",cat:"Fats & pantry",role:"pantry",std:false,gi:"high",per100:{k:304,p:0.3,c:82,f:0,fib:0.2},prices:{"Channell Supermarkets":{p:19.99,g:453,n:"Billy Bee Honey 453g"},"Cherish Supermarket":{p:15.79,g:340,n:"Billy Bee Honey 12oz"},"Eddies Supermarket":{p:16.99,g:453,n:"Billy Bee Honey 453g"},"Jordans Supermarkets":{p:16.45,g:453,n:"Billy Bee Honey 453g"},"Lionel C Hill Supermarket":{p:21.13,g:500,n:"Bee Maid Honey 500g"},"People's Market":{p:16.52,g:340,n:"Billy Bee Honey 12oz"},"Price Lo":{p:20.99,g:500,n:"Bee Maid Honey 500g"},"Roxy Supermarket":{p:16.45,g:453,n:"Billy Bee Honey 453g"}}},
+ {id:"milk_powder",name:"Skimmed milk powder",cat:"Fats & pantry",role:"pantry",std:false,gi:"low",per100:{k:362,p:36,c:52,f:0.8,fib:0},prices:{"Jordans Supermarkets":{p:20.94,g:1000,n:"Skimmed Milk (Powder) 1kg"}}},
 ];
 
 /* ---------- body types (with body-fat estimates) ---------- */
@@ -1236,10 +1245,10 @@ const GOALS = [
    FOOD TYPES & EATING STYLES (DIETS)
    ===================================================================== */
 const FOOD_TYPE = {
-  meat:["whole_chicken","chicken_stew","stew_beef","minced_beef","pork_chops","lamb_shoulder","corned_beef","chicken_sausage"],
+  meat:["whole_chicken","chicken_stew","stew_beef","minced_beef","pork_chops","pork_shoulder","lamb_shoulder","corned_beef","chicken_sausage"],
   fish:["flying_fish","salt_fish","tuna_water","sardines"],
   egg:["eggs"],
-  dairy:["yogurt","cheddar","milk_2pct","whole_milk"]
+  dairy:["yogurt","cheddar","milk_2pct","whole_milk","milk_powder"]
 };
 FOODS.forEach(f=>{f.type="plant"; for(const t in FOOD_TYPE) if(FOOD_TYPE[t].includes(f.id)) f.type=t;});
 
@@ -1667,11 +1676,13 @@ function renderGoals(){
 renderGoals();
 
 /* food chips */
+const PLATED_ROLES=["protein","carb","veg","fruit","fat"];   // "pantry" foods are only ever recipe extras
 function renderFoods(){
-  const cats=[...new Set(FOODS.map(f=>f.cat))];
+  const shown=FOODS.filter(f=>PLATED_ROLES.includes(f.role));
+  const cats=[...new Set(shown.map(f=>f.cat))];
   document.getElementById("foodChips").innerHTML = cats.map(cat=>
     `<div class="cat-title">${cat}</div><div class="chips">`+
-    FOODS.filter(f=>f.cat===cat).map(f=>
+    shown.filter(f=>f.cat===cat).map(f=>
       `<button type="button" class="chip ${state.liked.has(f.id)?'on':''}" data-id="${f.id}">${f.name}</button>`).join("")+
     `</div>`).join("");
   document.querySelectorAll(".chip").forEach(ch=>ch.addEventListener("click",()=>{
@@ -1888,7 +1899,16 @@ const PANTRY={
   bay:         {name:"Bay leaves",          unit:"leaves", per:25,  pack:"jar"},
   cinnamon:    {name:"Cinnamon / nutmeg",   unit:"tsp",    per:24,  pack:"jar"},
   salt:        {name:"Salt",                unit:"tsp",    per:400, pack:"box"},
-  pepper:      {name:"Black pepper",        unit:"tsp",    per:30,  pack:"jar"}
+  pepper:      {name:"Black pepper",        unit:"tsp",    per:30,  pack:"jar"},
+  tomato:      {name:"Tomatoes",            unit:"tomatoes",per:6,  pack:"bag"},
+  mustard:     {name:"Prepared mustard",    unit:"tbsp",   per:30,  pack:"bottle"},
+  paprika:     {name:"Paprika",             unit:"tsp",    per:40,  pack:"jar"},
+  curry:       {name:"Curry powder",        unit:"tsp",    per:50,  pack:"jar"},
+  soy_sauce:   {name:"Soy sauce",           unit:"tbsp",   per:40,  pack:"bottle"},
+  sesame:      {name:"Sesame seeds",        unit:"tbsp",   per:20,  pack:"packet"},
+  jerk:        {name:"Jerk seasoning",      unit:"tbsp",   per:20,  pack:"jar"},
+  vinegar:     {name:"Vinegar",             unit:"tbsp",   per:60,  pack:"bottle"},
+  cocoa:       {name:"Cocoa powder",        unit:"tbsp",   per:20,  pack:"tin"}
 };
 /* extras shorthand: P(id,qty) = pantry item, X(foodId,grams) = priced food */
 const P=(id,q)=>({p:id,q}), X=(id,g)=>({f:id,g});
@@ -1906,7 +1926,7 @@ const RAW_PROTEIN_STEP={
 };
 const AROMATICS=[X("onions",40),P("garlic",2),P("thyme",1)];
 
-function recipeFor(m,isBreakfast){
+function legacyRecipe(m,isBreakfast){
   const p=byRole(m,"protein"), c=byRole(m,"carb"), v=byRole(m,"veg"),
         f=byRole(m,"fat"), fr=byRole(m,"fruit");
   const A=x=>amt(x[0],x[1]);
@@ -1966,8 +1986,8 @@ function recipeFor(m,isBreakfast){
      with one of the new roast-friendly vegetables. Roast time is keyed off
      the vegetable's own id, never randomness, so the recipe stays a pure
      function of the meal. */
-  const ROAST_VEG_MIN={bell_peppers:20,zucchini:18,brussels_sprouts:25,carrots:22};
-  const ROAST_PROTEIN_OK=["whole_chicken","chicken_stew","stew_beef","minced_beef","pork_chops","lamb_shoulder","flying_fish","salt_fish"];
+  const ROAST_VEG_MIN={bell_peppers:20,zucchini:18,brussels_sprouts:25,carrots:22,broccoli:25,green_beans:18};
+  const ROAST_PROTEIN_OK=["whole_chicken","chicken_stew","stew_beef","minced_beef","pork_chops","pork_shoulder","lamb_shoulder","flying_fish","salt_fish"];
   if(v && ROAST_VEG_MIN[v[0].id] && ROAST_PROTEIN_OK.includes(pn.id)){
     const rt=ROAST_VEG_MIN[v[0].id];
     const sheetCarb = c && ["potatoes","sweet_potato"].includes(c[0].id);
@@ -2039,20 +2059,6 @@ function recipeFor(m,isBreakfast){
       `Season the potatoes with pepper and a little of the pan juices, and plate everything together with lime wedges.`
     ].filter(Boolean), extras:[P("salt",0.75),P("pepper",0.5),P("lime",0.5),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
   }
-  if(c[0].id==="sweet_potato"){
-    /* mash vs fries is derived from the meal's own ingredient ids, never
-       Math.random()/Date.now() — keeps recipeFor() a pure function of m */
-    const mash = (pn.id.length+c[0].id.length+(v?v[0].id.length:0))%2===0;
-    return {title:`${pn.name.replace(/ \(.*\)/,"")} with sweet potato ${mash?"mash":"fries"}`,time:mash?"35 min":"40 min",steps:[
-      mash
-        ? `Peel and cube ${A(c)}; boil in salted water 15–18 min until fork-tender, then mash with ${f?A(f):"a little margarine"} and black pepper.`
-        : `Peel ${A(c)} and cut into wedges; toss with ${f?A(f):"1 tbsp oil"} and salt, and roast at 200°C (400°F) for 25–30 min, turning once, until crisp at the edges.`,
-      RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
-      `Grill or pan-fry ${A(pMain)} until cooked through.`,
-      v?`Steam ${A(v)} until bright and tender.`:null,
-      `Plate everything together with lime wedges.`
-    ].filter(Boolean), extras:[P("salt",0.75),P("pepper",0.5),P("lime",0.5),...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant)]};
-  }
   if(["ww_bread","salt_bread"].includes(c[0].id)){
     return {title:`${pn.name.replace(/ \(.*\)/,"")} ${c[0].id==="salt_bread"?"cutters":"sandwiches"}`,time:"15 min",steps:[
       RAW_PROTEIN_STEP[pn.type]||RAW_PROTEIN_STEP.plant,
@@ -2069,7 +2075,441 @@ function recipeFor(m,isBreakfast){
     `Prepare ${A(c)} according to the pack.`,
     v?`Steam ${A(v)}.`:null,
     `Season everything and serve together.`
-  ].filter(Boolean), extras:[...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant),X("onions",30),P("garlic",1)]};
+  ].filter(Boolean), extras:[...(SEASON_EXTRAS[pn.type]||SEASON_EXTRAS.plant),X("onions",30),P("garlic",1)], generic:true};
+}
+
+/* =====================================================================
+   MEAL-PREP RECIPE LIBRARY
+   The 29 recipes from the supplied meal-prep guide, rebuilt around
+   ingredients that are on the Barbados price list. Each recipe declares
+   which meals it fits (protein / carb / vegetable), writes its method
+   around the grams the planner actually produced, lists the swaps made,
+   and names every extra ingredient so the shopping list carries it.
+   recipeFor() picks among the fitting recipes with a hash of the meal's
+   own contents, so the same meal always gets the same recipe (it is
+   called twice per meal: once to render, once to total the shopping).
+   ===================================================================== */
+const RC={
+  CHICKEN:["whole_chicken","chicken_stew"],
+  RICE:["white_rice","parboiled_rice","brown_rice"],
+  PEAS:["split_peas","pigeon_peas_dry","blackeye_peas","pigeon_peas_can"],
+  CRUMB:["cornflakes","ww_bread","salt_bread"],
+  BREAD:["ww_bread","salt_bread"],
+  ROAST:["bell_peppers","zucchini","carrots","brussels_sprouts","broccoli","green_beans"],
+  MILK:["milk_2pct","whole_milk"],
+  COOKFAT:["veg_oil","olive_oil","margarine"]
+};
+
+function recipeCtx(m,isBreakfast){
+  const g=r=>byRole(m,r);
+  const p=g("protein"), c=g("carb"), v=g("veg"), f=g("fat"), fr=g("fruit");
+  const pMain=p||m.items[0], pn=pMain[0];
+  const x={m,p,c,v,f,fr,pMain,pn,isBreakfast:!!isBreakfast,
+    pid:pn.id, cid:c?c[0].id:null, vid:v?v[0].id:null, fid:f?f[0].id:null, frid:fr?fr[0].id:null,
+    milk:m.items.find(([i])=>RC.MILK.includes(i.id)),
+    pb:m.items.find(([i])=>i.id==="peanut_butter")};
+  x.A=i=>amt(i[0],i[1]);
+  x.oil=()=> (f&&RC.COOKFAT.includes(f[0].id)) ? amt(f[0],f[1]) : "1 tbsp oil";
+  x.butter=()=> x.fid==="margarine" ? amt(f[0],f[1]) : "1 tbsp margarine";
+  x.butterExtra=()=> x.fid==="margarine" ? [] : [X("margarine",14)];
+  x.short=()=>pn.name.replace(/ \(.*\)/,"");
+  x.vname=()=>v?v[0].name.toLowerCase():"vegetables";
+  return x;
+}
+
+function carbStep(x){
+  if(!x.c) return null;
+  const id=x.cid, a=x.A(x.c);
+  if(RC.RICE.includes(id)) return `Rinse ${a} and cook in salted water (about 2:1 water to rice) until tender — brown rice ~35 min, white or parboiled 15–20.`;
+  if(id==="macaroni") return `Boil ${a} in salted water until al dente; drain.`;
+  if(id==="potatoes") return `Scrub and cube ${a}; boil in salted water 15–20 min until fork-tender.`;
+  if(id==="sweet_potato") return `Peel and cube ${a}; boil 10–12 min until fork-tender.`;
+  if(RC.BREAD.includes(id)) return `Warm or toast ${a}.`;
+  if(id==="pigeon_peas_can") return `Rinse ${a}, then warm through with a pinch of salt and a sprig of thyme.`;
+  if(RC.PEAS.includes(id)) return `Soak ${a} 1 hr, then simmer 35–45 min until tender; season near the end.`;
+  if(id==="oats"||id==="cream_wheat") return `Cook ${a} into a thick porridge with water or milk and a pinch of salt.`;
+  if(id==="cornflakes") return `Serve ${a} in a bowl with a splash of milk.`;
+  return `Prepare ${a} according to the pack.`;
+}
+function proteinStep(x){
+  const a=x.A(x.pMain), id=x.pid;
+  if(id==="eggs") return `Scramble or fry ${a} in ${x.oil()}.`;
+  if(id==="tuna_water"||id==="sardines") return `Drain ${a} and flake it with a squeeze of lime.`;
+  if(id==="corned_beef") return `Warm ${a} in a pan with sliced onion until it breaks up.`;
+  if(id==="yogurt") return `Spoon ${a} alongside as a cooling side.`;
+  if(id==="soya_chunks") return `Soak ${a} in hot salted water 10 min, squeeze dry and pan-fry in ${x.oil()}.`;
+  if(RC.PEAS.includes(id)) return `Stew ${a} with onion, garlic and thyme until tender.`;
+  if(id==="peanut_butter") return `Stir ${a} into a little hot water with pepper sauce to make a sauce.`;
+  if(id==="chicken_sausage") return `Pan-fry or bake ${a} until browned and hot through.`;
+  return `${RAW_PROTEIN_STEP[x.pn.type]||RAW_PROTEIN_STEP.plant} Then grill, pan-fry or bake ${a} until cooked through.`;
+}
+const steamVeg=x=> x.v ? `Steam ${x.A(x.v)} until bright and tender.` : null;
+function tailSteps(x){
+  const o=[];
+  if(x.f && !RC.COOKFAT.includes(x.fid)){
+    const a=x.A(x.f);
+    if(x.fid==="cheddar") o.push(`Grate ${a} over the top.`);
+    else if(RC.MILK.includes(x.fid)) o.push(`Have ${a} alongside.`);
+    else if(x.fid==="peanut_butter") o.push(`Serve with ${a} on the side.`);
+  }
+  if(x.fr) o.push(`Finish with ${x.A(x.fr)} on the side.`);
+  return o;
+}
+const seasonFor=x=>SEASON_EXTRAS[x.pn.type]||SEASON_EXTRAS.plant;
+
+/* ---- smoothies: breakfast only. They use the meal's own milk, fruit,
+        yogurt, peanut butter and oats; skimmed milk powder stands in for
+        protein powder. ---- */
+const smoothieOK=x=> x.isBreakfast && x.fr && ["yogurt","peanut_butter","eggs"].includes(x.pid) &&
+  !(x.f && RC.COOKFAT.includes(x.fid) && !(x.pid==="eggs"||RC.BREAD.includes(x.cid)));
+function blendLiquid(x){ return x.milk ? x.A(x.milk) : "1 cup water (or milk)"; }
+function withOats(x){ return x.cid==="oats" ? `, ${x.A(x.c)}` : ""; }
+function smoothieSides(x){
+  const o=[];
+  if(x.pid==="eggs") o.push(x.f&&RC.COOKFAT.includes(x.fid)
+      ? `Scramble ${x.A(x.pMain)} in ${x.A(x.f)} and have them alongside.`
+      : `Hard-boil ${x.A(x.pMain)} (8–9 min) and have them alongside.`);
+  if(x.c && x.cid!=="oats"){
+    o.push(RC.BREAD.includes(x.cid)
+      ? `Toast ${x.A(x.c)}${x.f&&RC.COOKFAT.includes(x.fid)&&x.pid!=="eggs"?` and spread with ${x.A(x.f)}`:""}.`
+      : `Have ${x.A(x.c)} on the side.`);
+  }
+  if(x.f && x.fid==="cheddar") o.push(`Have ${x.A(x.f)} cheese on the side.`);
+  return o;
+}
+const pbBit=x=> x.pb && x.pid!=="peanut_butter" ? `, ${x.A(x.pb)}` : "";
+
+const MEALPREP_RECIPES=[
+/* ===================== one-appliance mixed meals ===================== */
+{id:"slow_beef_stew", from:"Slow Cooker Beef Stew", meal:"main", time:"4–6 hr (15 min hands-on)",
+ fits:x=>x.pid==="stew_beef" && ["carrots","mushrooms","cabbage","green_beans","onions"].includes(x.vid),
+ title:x=>`Slow-cooker beef stew with ${x.vname()}`,
+ steps:x=>[
+  `Put ${x.A(x.pMain)} and ${x.A(x.v)} (cut bite-size) in the slow cooker with a chopped onion, a few thyme sprigs, a bay leaf, salt, pepper and a stock cube dissolved in 1 cup hot water.`,
+  `Cover and cook on low 4–6 hours until the beef is tender. No slow cooker? Simmer covered on the stove 1½–2 hours, topping up with water.`,
+  `Thicken: stir 1 tbsp flour mixed with a little cold water into the pot and cook uncovered 10 minutes until the gravy coats a spoon. Finish with a squeeze of lime.`,
+  carbStep(x), ...tailSteps(x)],
+ extras:x=>[X("onions",60),P("thyme",2),P("bay",1),P("garlic",2),P("salt",.5),P("pepper",.25),P("lime",.5),X("stock_cubes",5),X("flour",15)],
+ swaps:["beef broth → water + a stock cube","brown rice flour → plain flour","red wine vinegar → squeeze of lime"]},
+
+{id:"slow_pea_soup", from:"Slow Cooker Chicken & Black Bean Taco Soup", meal:"main", time:"5 hr (15 min hands-on)",
+ fits:x=>RC.CHICKEN.includes(x.pid) && (RC.RICE.includes(x.cid)||RC.PEAS.includes(x.cid)),
+ title:x=>`Slow-cooker chicken & ${RC.PEAS.includes(x.cid)?"peas":"rice"} soup`,
+ steps:x=>[
+  `Put ${x.A(x.pMain)} and ${x.A(x.c)} (${RC.PEAS.includes(x.cid)?"soaked or canned, drained":"rinsed"}) in the slow cooker with a chopped onion, 2 garlic cloves, thyme, 2 chopped tomatoes, a stock cube and enough water to cover by a few centimetres.`,
+  `Cook on low 5 hours (or simmer about 1 hour on the stove) until the chicken pulls off the bone and the ${RC.PEAS.includes(x.cid)?"peas are":"rice is"} soft.`,
+  `Lift out the chicken, shred it with two forks and stir it back in.`,
+  x.v?`Stir in ${x.A(x.v)}, chopped, for the last 15 minutes.`:null,
+  `Season with salt, pepper sauce and lime, and scatter chopped scallion on top.`, ...tailSteps(x)],
+ extras:x=>[X("onions",60),P("garlic",2),P("thyme",2),P("tomato",2),X("stock_cubes",5),P("salt",.5),P("pepper_sauce",.5),P("lime",.5),P("scallion",1)],
+ swaps:["quinoa → rice or peas","black beans → peas","fire-roasted tomatoes → fresh tomatoes","taco seasoning → Bajan seasoning + pepper sauce","avocado & tortilla chips → scallion & lime"]},
+
+{id:"slow_shank", from:"Slow Cooker Beef Shank", meal:"main", time:"4 hr on high (15 min hands-on)",
+ fits:x=>["lamb_shoulder","stew_beef"].includes(x.pid),
+ title:x=>`Slow-cooked ${x.short().toLowerCase()} with tomato${x.v?` & ${x.vname()}`:""}`,
+ steps:x=>[
+  `Season ${x.A(x.pMain)}, then brown it on all sides in ${x.oil()} in a heavy pan, about 5 minutes; move it to the slow cooker.`,
+  `In the same pan soften a sliced onion and 3 garlic cloves for 5–8 minutes; add 3 chopped tomatoes and scrape up the browned bits.`,
+  `Tip into the slow cooker with ${x.v?x.A(x.v)+", chopped,":"a chopped carrot,"} thyme, salt and pepper.`,
+  `Cook 4 hours on high (or 6–8 hours on low) until the meat falls off the bone.`,
+  carbStep(x), ...tailSteps(x)],
+ extras:x=>[X("onions",60),P("garlic",3),P("tomato",3),P("thyme",2),P("salt",.5),P("pepper",.25)],
+ swaps:["beef shanks → lamb shoulder or stew beef","canned diced tomatoes → fresh tomatoes"]},
+
+{id:"one_pan_fish", from:"One Pan Salmon, Zucchini & Bell Peppers", meal:"main", time:"30 min",
+ fits:x=>x.pid==="flying_fish" && RC.ROAST.includes(x.vid),
+ title:x=>`One-pan flying fish with roasted ${x.vname()}`,
+ steps:x=>[
+  `Preheat the oven to 205 °C (400 °F) and line a baking sheet.`,
+  `Toss ${x.A(x.v)}, cut into strips, with ${x.oil()}, salt and pepper; bake 15 minutes.`,
+  `Season ${x.A(x.pMain)} with salt, pepper and lime, add to the sheet and bake 8–10 minutes more until it flakes — flying fish fillets are thin, so watch them.`,
+  `Plate the fish over the vegetables and top with fresh thyme and lime wedges.`,
+  carbStep(x), ...tailSteps(x)],
+ extras:x=>[...SEASON_EXTRAS.fish,P("thyme",1)],
+ swaps:["salmon fillet → flying fish","dill → fresh thyme","lemon → lime"]},
+
+{id:"one_pan_chop", from:"One Pan Steak with Broccoli & Green Beans", meal:"main", time:"20 min",
+ fits:x=>x.pid==="pork_chops" && ["broccoli","green_beans","cabbage","zucchini","bell_peppers","carrots"].includes(x.vid),
+ title:x=>`One-pan pork chops with ${x.vname()}`,
+ steps:x=>[
+  `Heat a heavy (ideally cast-iron) pan over high heat. Rub ${x.A(x.pMain)} all over with Bajan green seasoning, salt and pepper.`,
+  `Coat the pan with ${x.oil()} and sear the chops 4–5 minutes per side until golden and cooked through. Rest 5 minutes, then slice.`,
+  `Lower the heat to medium. Add ${x.A(x.v)} with a splash of water, salt and pepper to the same pan and cook 3–4 minutes until tender-crisp.`,
+  `Plate together and serve.`, carbStep(x), ...tailSteps(x)],
+ extras:x=>[...SEASON_EXTRAS.meat],
+ swaps:["top sirloin steak → pork hind-leg chops","steak spice → Bajan green seasoning","avocado oil → vegetable oil"]},
+
+{id:"sheet_pan_chicken", from:"One Pan Chicken Thighs, Mini Potatoes & Broccoli", meal:"main", time:"50 min",
+ fits:x=>RC.CHICKEN.includes(x.pid) && ["potatoes","sweet_potato"].includes(x.cid) && RC.ROAST.includes(x.vid),
+ title:x=>`Sheet-pan chicken, ${x.c[0].name.toLowerCase()} & ${x.vname()}`,
+ steps:x=>[
+  `Preheat the oven to 190 °C (375 °F) and grease a baking dish.`,
+  `Toss ${x.A(x.pMain)} (in pieces), ${x.A(x.c)} (cut small) and ${x.A(x.v)} with ${x.oil()}, 1 tsp paprika, 2 chopped garlic cloves, salt and pepper.`,
+  `Bake 30 minutes, then toss the chicken in the pan juices and return to the oven 15–20 minutes until cooked through and the potatoes are golden.`,
+  `Garnish with chopped scallion and serve.`, ...tailSteps(x)],
+ extras:x=>[P("paprika",1),P("garlic",2),P("scallion",1),P("salt",.75),P("pepper",.25)],
+ swaps:["boneless thighs → chopped stew chicken or whole-chicken pieces","mini potatoes → Irish or sweet potatoes","garlic powder → fresh garlic","green onion → scallion"]},
+
+{id:"one_pot_beef", from:"One Pot Turkey, Cabbage & Mushrooms", meal:"main", time:"20 min",
+ fits:x=>x.pid==="minced_beef" && ["cabbage","mushrooms"].includes(x.vid),
+ title:x=>`One-pot minced beef with ${x.vname()}`,
+ steps:x=>[
+  `Heat ${x.oil()} in a large pan over medium-high. Add ${x.A(x.pMain)} with a chopped onion and cook 3–5 minutes, breaking it up.`,
+  `Add ${x.A(x.v)}, finely sliced, and a pinch of salt; cook 5–7 minutes until softened.`,
+  `Stir in fresh thyme and a squeeze of lime and cook 2 more minutes.`, carbStep(x), ...tailSteps(x)],
+ extras:x=>[X("onions",50),P("thyme",2),P("lime",.5),P("garlic",1),...SEASON_EXTRAS.meat],
+ swaps:["extra-lean ground turkey → minced beef","Thai basil → fresh thyme","portobello mushrooms → button mushrooms"]},
+
+/* ============================= smoothies ============================= */
+{id:"sm_fruit_yogurt", from:"Strawberry Kefir Smoothie", meal:"breakfast", time:"5 min",
+ fits:x=>smoothieOK(x) && x.pid==="yogurt",
+ title:x=>`${x.fr[0].name.replace(/ \(.*\)/,"")} & yogurt smoothie`,
+ steps:x=>[`Blend ${x.A(x.pMain)}, ${x.A(x.fr)}, ${blendLiquid(x)}${withOats(x)}${pbBit(x)}, 2 tbsp skimmed milk powder and a few ice cubes until smooth.`,
+  `Taste and sweeten with a little honey if needed; drink right away.`, ...smoothieSides(x)],
+ extras:x=>[X("milk_powder",20),X("honey",10)],
+ swaps:["kefir → plain yogurt + milk","frozen strawberries → banana or other fresh fruit","protein powder → skimmed milk powder","chia seeds → oats"]},
+
+{id:"sm_choc_pb_bowl", from:"Chocolate Almond Butter Smoothie Bowl", meal:"breakfast", time:"5 min",
+ fits:x=>smoothieOK(x) && !!x.pb,
+ title:x=>`Chocolate peanut-butter smoothie bowl`,
+ steps:x=>[`Blend ${blendLiquid(x)}, ${x.A(x.pb)}, half of ${x.A(x.fr)}, 1 tbsp cocoa${withOats(x)}${x.pid==="yogurt"?`, ${x.A(x.pMain)}`:""} and a few ice cubes until thick.`,
+  `Pour into a bowl and top with the rest of the fruit, sliced.`, ...smoothieSides(x)],
+ extras:x=>[P("cocoa",1),X("honey",10)],
+ swaps:["almond butter → peanut butter","unsweetened almond milk → milk","cacao powder → cocoa powder","frozen cauliflower & zucchini → extra fruit","raspberries & granola → sliced fruit & oats"]},
+
+{id:"sm_salted_pb", from:"Salted Peanut Butter & Chocolate Smoothie", meal:"breakfast", time:"5 min",
+ fits:x=>smoothieOK(x) && !!x.pb,
+ title:x=>`Salted peanut-butter & cocoa shake`,
+ steps:x=>[`Blend ${blendLiquid(x)}, ${x.A(x.pb)}, 1 tbsp cocoa, a pinch of salt, a drizzle of honey, 2 tbsp skimmed milk powder${withOats(x)}${x.pid==="yogurt"?`, ${x.A(x.pMain)}`:""} and 4 ice cubes until smooth.`,
+  `Taste and adjust the honey; pour and drink.`, ...smoothieSides(x), x.fr?`Have ${x.A(x.fr)} on the side.`:null],
+ extras:x=>[P("cocoa",1),P("salt",.1),X("honey",10),X("milk_powder",20)],
+ swaps:["lite coconut milk → milk","protein powder & collagen → skimmed milk powder","monk fruit sweetener → honey"]},
+
+{id:"sm_banana_orange", from:"Mango Banana Smoothie", meal:"breakfast", time:"5 min",
+ fits:x=>smoothieOK(x) && ["bananas","oranges"].includes(x.frid) && (x.pid==="yogurt"||!!x.milk),
+ title:x=>`Banana-orange smoothie`,
+ steps:x=>[`Blend ${x.A(x.fr)}, ${x.frid==="bananas"?"the juice of 1 orange":"1 ripe banana"}, ${x.pid==="yogurt"?x.A(x.pMain):blendLiquid(x)}${x.pid==="yogurt"&&x.milk?`, ${x.A(x.milk)}`:""}${withOats(x)}${pbBit(x)}, 2 tbsp skimmed milk powder and a handful of ice until smooth.`,
+  `Pour and drink right away.`, ...smoothieSides(x)],
+ extras:x=>[x.frid==="bananas"?X("oranges",120):X("bananas",100),X("milk_powder",20)],
+ swaps:["frozen mango → banana & orange","frozen cauliflower → ice","collagen powder → skimmed milk powder","Greek yogurt → plain yogurt"]},
+
+{id:"sm_vanilla_oat", from:"Vanilla Berry Protein Smoothie", meal:"breakfast", time:"5 min",
+ fits:x=>smoothieOK(x) && x.cid==="oats" && !!x.milk,
+ title:x=>`Vanilla-spice oat & fruit smoothie`,
+ steps:x=>[`Blend ${x.A(x.milk)}, ${x.A(x.c)}, ${x.A(x.fr)}${pbBit(x)}${x.pid==="yogurt"?`, ${x.A(x.pMain)}`:""}, 2 tbsp skimmed milk powder, a pinch of cinnamon and nutmeg and a few ice cubes until smooth.`,
+  `Divide into glasses and enjoy.`, ...smoothieSides(x)],
+ extras:x=>[P("cinnamon",1),X("milk_powder",20)],
+ swaps:["soy milk → milk","vanilla protein powder → skimmed milk powder + cinnamon & nutmeg","hemp seeds → oats","blueberries & raspberries → banana, apple, orange or grapes","almond butter → peanut butter"]},
+
+/* ============== mix-and-match proteins (prep once, eat all week) ============== */
+{id:"slow_salsa_chicken", from:"Slow Cooker Salsa Chicken", meal:"main", time:"4–6 hr (10 min hands-on)",
+ fits:x=>RC.CHICKEN.includes(x.pid),
+ title:x=>`Slow-cooker salsa chicken`,
+ steps:x=>[
+  `Make a quick salsa: chop 2 tomatoes, ½ onion and a little scallion; stir in lime juice, salt and a dash of pepper sauce.`,
+  `Put ${x.A(x.pMain)} in the slow cooker and cover with the salsa. Cook on high 4 hours or low 6–8 hours.`,
+  `Shred the chicken with two forks and let it sit in the juices 10 minutes.`,
+  steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("tomato",2),X("onions",40),P("lime",.5),P("pepper_sauce",.5),P("scallion",1),P("salt",.5),P("pepper",.25)],
+ swaps:["jarred salsa → fresh tomato, onion & pepper salsa","boneless chicken breast → stew chicken or whole-chicken pieces"]},
+
+{id:"baked_chicken", from:"Juicy Baked Chicken Breast", meal:"main", time:"45 min",
+ fits:x=>RC.CHICKEN.includes(x.pid),
+ title:x=>`Juicy oven-baked chicken`,
+ steps:x=>[
+  `Preheat the oven to 205 °C (400 °F) and line a baking dish.`,
+  `Put ${x.A(x.pMain)} in the dish, drizzle with ${x.oil()} and rub all over with salt, thyme and Bajan green seasoning.`,
+  `Bake 30–40 minutes (pieces on the bone take the longer end) until the juices run clear — 74 °C inside.`,
+  `Cover with foil for 10 minutes before serving.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[...SEASON_EXTRAS.meat,P("thyme",2)],
+ swaps:["boneless chicken breast → chicken pieces","Italian seasoning → thyme & Bajan seasoning"]},
+
+{id:"popcorn_chicken", from:"Popcorn Chicken", meal:"main", time:"25 min",
+ fits:x=>RC.CHICKEN.includes(x.pid) && RC.CRUMB.includes(x.cid),
+ title:x=>`Oven popcorn chicken`,
+ steps:x=>[
+  `Preheat the oven to 230 °C (450 °F) and line a baking sheet.`,
+  `Cut ${x.A(x.pMain)} into bite-size cubes and toss with 2 tbsp milk, a pinch of salt and a dash of pepper sauce.`,
+  `${x.cid==="cornflakes"?`Crush ${x.A(x.c)}`:`Toast ${x.A(x.c)} and crush about a third of it`} into fine crumbs with a pinch of salt, and press the chicken into them.`,
+  `Bake 12–15 minutes until golden and cooked through.`,
+  x.cid==="cornflakes"?null:`Serve the rest of the toast alongside.`, steamVeg(x), ...tailSteps(x)],
+ extras:x=>[X("milk_2pct",30),P("salt",.5),P("pepper_sauce",.5)],
+ swaps:["bread crumbs → crushed cornflakes or toasted bread","Greek yogurt → milk","chicken breast → chicken pieces"]},
+
+{id:"sesame_fish", from:"Sesame Crusted Seared Ahi Tuna", meal:"main", time:"45 min (includes marinating)",
+ fits:x=>x.pid==="flying_fish",
+ title:x=>`Sesame-crusted seared flying fish`,
+ steps:x=>[
+  `Mix 1 tbsp soy sauce, 1 tbsp oil, lime juice and a little crushed garlic; coat ${x.A(x.pMain)} and marinate in the fridge 20–30 minutes.`,
+  `Lift out, shake off the excess and press into 1–2 tbsp sesame seeds.`,
+  `Sear in a hot non-stick pan 1–2 minutes per side (flying fish is thin) and serve immediately.`,
+  steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("soy_sauce",1),P("sesame",2),P("lime",.5),P("garlic",1),P("pepper",.25)],
+ swaps:["sushi-grade ahi tuna → flying fish","coconut aminos → soy sauce","sesame oil → vegetable oil"]},
+
+{id:"lime_mustard_chicken", from:"Lemon Dijon Chicken Drumsticks", meal:"main", time:"55 min",
+ fits:x=>RC.CHICKEN.includes(x.pid),
+ title:x=>`Lime-mustard roast chicken`,
+ steps:x=>[
+  `Mix 2 tbsp mustard, the juice of 1 lime, 1 tsp thyme, salt and pepper in a bag; add ${x.A(x.pMain)}, seal and massage in. Rest 20 minutes.`,
+  `Preheat the oven to 205 °C (400 °F) and line a baking sheet. Bake the chicken 25–35 minutes until cooked through.`,
+  `Drizzle with a little more lime juice the moment it comes out.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("mustard",2),P("lime",1),P("thyme",2),P("salt",.5),P("pepper",.25)],
+ swaps:["Dijon mustard → prepared mustard","lemon → lime","dried oregano → thyme","drumsticks → any chicken pieces"]},
+
+{id:"cast_iron_chop", from:"Simple Cast-Iron Steak", meal:"main", time:"1 hr (mostly resting)",
+ fits:x=>x.pid==="pork_chops",
+ title:x=>`Simple cast-iron pork chops`,
+ steps:x=>[
+  `Season ${x.A(x.pMain)} on all sides with salt and let it sit at room temperature 30–45 minutes.`,
+  `Heat a cast-iron (or heavy) skillet on medium-high 4–5 minutes until very hot. Pat the chops dry.`,
+  `Sear about 4–5 minutes per side until deep golden and cooked through — no pink.`,
+  `Rest 5–10 minutes under foil before slicing.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("salt",1),P("pepper",.25)],
+ swaps:["NY striploin steak → pork hind-leg chops"]},
+
+{id:"garlic_butter_chop", from:"Steak with Garlic Butter", meal:"main", time:"20 min",
+ fits:x=>x.pid==="pork_chops",
+ title:x=>`Garlic-butter pork chops`,
+ steps:x=>[
+  `Mash half of ${x.butter()} with 1 minced garlic clove, chopped scallion and a pinch of salt; set aside.`,
+  `Heat a heavy pan on medium-high, add the remaining margarine, then ${x.A(x.pMain)} seasoned with salt and pepper: 4+ minutes per side.`,
+  `In the last minutes spoon the pan butter over the chops. Rest 5 minutes and serve with the garlic butter on top.`,
+  steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[...x.butterExtra(),P("garlic",1),P("scallion",1),P("salt",.75),P("pepper",.25)],
+ swaps:["butter → margarine","flat iron steak → pork hind-leg chops","parsley → scallion"]},
+
+{id:"chicken_broth", from:"Slow Cooker Chicken & Broth", meal:"main", time:"2 hr + 3 hr broth",
+ fits:x=>x.pid==="whole_chicken",
+ title:x=>`Whole chicken with homemade broth`,
+ steps:x=>[
+  `Put ${x.A(x.pMain)} in a large pot (or slow cooker) with 1 chopped onion, 2 garlic cloves, thyme, a bay leaf, 2 tsp salt and enough water to just cover.`,
+  `Simmer gently — about 1½ hours on the stove, or ~6 hours on low in a slow cooker — until the meat comes off the bone. Lift the chicken out and enjoy the meat.`,
+  `Return the bones to the pot with 1 tbsp vinegar and simmer 3+ hours more (slow cooker: overnight on low). Strain and freeze in portions.`,
+  `Serve about ¾ cup of chicken with 1 cup of broth.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[X("onions",50),P("garlic",2),P("thyme",3),P("bay",1),P("vinegar",1),P("salt",1)],
+ swaps:["dry sherry → a splash of vinegar","bone broth → your own chicken broth","apple cider vinegar → plain vinegar"]},
+
+{id:"jerk_pork", from:"Pressure Cooker Jerk Pork", meal:"main", time:"1 hr pressure cooker / 2 hr stovetop",
+ fits:x=>["pork_shoulder","pork_chops"].includes(x.pid),
+ title:x=>`Pressure-cooker (or stovetop) jerk pork`,
+ steps:x=>[
+  `Toss ${x.A(x.pMain)}, cut into large chunks, with 3 tbsp jerk seasoning; marinate 1–4 hours if you can.`,
+  `Pressure cooker: add ½ cup water, seal and cook on high 40 minutes, then natural-release 10. No pressure cooker: simmer covered in a little water 1½–2 hours until it shreds.`,
+  `Shred with two forks and mix back into the juices. For crisp edges, broil the shredded pork on a sheet pan 5–8 minutes.`,
+  steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("jerk",3),P("thyme",1),P("salt",.5)],
+ swaps:["jerk seasoning → Bajan green seasoning + pepper sauce, if you can't find jerk","pork shoulder → pork hind-leg chops"]},
+
+{id:"crispy_strips", from:"Coconut Chicken Strips", meal:"main", time:"35 min",
+ fits:x=>RC.CHICKEN.includes(x.pid) && RC.CRUMB.includes(x.cid),
+ title:x=>`Crispy ${x.cid==="cornflakes"?"cornflake":"toasted-crumb"} chicken strips`,
+ steps:x=>[
+  `Preheat the oven to 205 °C (400 °F) and line a baking sheet. ${x.cid==="cornflakes"?`Crush ${x.A(x.c)}`:`Toast ${x.A(x.c)} and crumble it`} into one bowl; whisk 1 egg with salt and pepper in another.`,
+  `Cut ${x.A(x.pMain)} into strips. Dust each with a little flour, dip in the egg, then press into the crumbs.`,
+  `Bake 20–25 minutes, flipping halfway, until golden and cooked through.`, steamVeg(x), ...tailSteps(x)],
+ extras:x=>[X("eggs",50),X("flour",15),P("salt",.5),P("pepper",.25)],
+ swaps:["unsweetened shredded coconut → crushed cornflakes or bread crumbs","almond flour → plain flour","chicken breast strips → strips cut from chicken pieces"]},
+
+{id:"slow_roast", from:"Strip Loin Roast", meal:"main", time:"3 hr",
+ fits:x=>["lamb_shoulder","pork_shoulder"].includes(x.pid),
+ title:x=>`Slow-roasted ${x.short().toLowerCase()}`,
+ steps:x=>[
+  `Take ${x.A(x.pMain)} out of the fridge 30 minutes before cooking. Rub with ${x.oil()}, salt, pepper and Bajan green seasoning; push slivers of garlic into small cuts.`,
+  `Preheat the oven to 190 °C (375 °F). Roast 30 minutes, then lower to 150 °C (300 °F), cover loosely with foil and cook 2–2½ hours until tender.`,
+  `Rest at least 15 minutes, then slice or pull apart.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("garlic",3),P("thyme",2),...SEASON_EXTRAS.meat],
+ swaps:["strip loin roast → lamb or pork shoulder (slower, cheaper, more flavour)","rosemary → thyme"]},
+
+{id:"air_fryer_chicken", from:"Air Fryer Turkey Breast", meal:"main", time:"1 hr",
+ fits:x=>RC.CHICKEN.includes(x.pid),
+ title:x=>`Air-fryer (or oven) herb-butter chicken`,
+ steps:x=>[
+  `Pat ${x.A(x.pMain)} dry and season all over with salt.`,
+  `Mix ${x.butter()}, melted, with chopped thyme and 1 minced garlic clove; brush it over the chicken.`,
+  `Air-fry skin-side up at 190 °C (375 °F) for 25–30 minutes, flipping halfway, until 74 °C inside — or roast at 200 °C for 35–45 minutes.`,
+  `Rest at least 10 minutes before serving.`, steamVeg(x), carbStep(x), ...tailSteps(x)],
+ extras:x=>[...x.butterExtra(),P("thyme",2),P("garlic",1),P("salt",.5)],
+ swaps:["turkey breast → chicken pieces","butter → margarine","rosemary & garlic powder → thyme & fresh garlic"]},
+
+/* ======================= carb & veggie side recipes ======================= */
+{id:"roasted_broccoli", from:"Roasted Broccoli", meal:"main", time:"35 min",
+ fits:x=>x.vid==="broccoli",
+ title:x=>`${x.short()} with roasted broccoli`,
+ steps:x=>[proteinStep(x),
+  `Preheat the oven to 205 °C (400 °F) and line a baking sheet.`,
+  `Toss ${x.A(x.v)}, cut into florets, with ${x.oil()}, 1 crushed garlic clove and a pinch of salt.`,
+  `Roast 25–30 minutes, tossing halfway, until tender and browned at the tips.`, carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("garlic",1),P("salt",.5)],
+ swaps:["avocado oil → vegetable or olive oil","garlic powder → fresh garlic"]},
+
+{id:"curried_broccoli", from:"Creamy Spiced Broccoli", meal:"main", time:"15 min",
+ fits:x=>x.vid==="broccoli",
+ title:x=>`${x.short()} with curried yogurt broccoli`,
+ steps:x=>[proteinStep(x),
+  `Steam ${x.A(x.v)}, in small florets, 4–5 minutes until tender.`,
+  `Stir 3 tbsp plain yogurt with ½ tsp curry powder, salt and pepper; toss the broccoli through.`,
+  carbStep(x), ...tailSteps(x)],
+ extras:x=>[X("yogurt",60),P("curry",1),P("salt",.25),P("pepper",.25)],
+ swaps:["unsweetened coconut yogurt → plain yogurt"]},
+
+{id:"smashed_brussels", from:"Crispy Smashed Brussels Sprouts", meal:"main", time:"35 min",
+ fits:x=>x.vid==="brussels_sprouts",
+ title:x=>`${x.short()} with crispy smashed brussels sprouts`,
+ steps:x=>[proteinStep(x),
+  `Preheat the oven to 220 °C (425 °F).`,
+  `Boil ${x.A(x.v)}, trimmed, 10 minutes until fork-tender; drain and spread on a baking sheet.`,
+  `Smash each one with the bottom of a mug, drizzle with ${x.oil()}, season, and roast 20 minutes until crisp.`,
+  carbStep(x), ...tailSteps(x)],
+ extras:x=>[P("salt",.5),P("pepper",.25)],
+ swaps:["extra virgin olive oil → whichever oil you have"]},
+
+{id:"sweet_potato_fries", from:"Sweet Potato Fries", meal:"main", time:"35 min",
+ fits:x=>x.cid==="sweet_potato",
+ title:x=>`${x.short()} with sweet potato fries`,
+ steps:x=>[
+  `Peel ${x.A(x.c)} and cut into ¼-inch strips. For crispier fries, soak in cold water 1 hour, then drain and pat dry.`,
+  `Preheat the oven to 220 °C (425 °F) and grease two baking sheets with a little of ${x.oil()}.`,
+  `Toss the strips with 1½ tbsp flour for crunch, then the rest of the oil. Spread out without crowding.`,
+  `Bake 25–30 minutes, flipping halfway; season with salt and let cool slightly.`,
+  proteinStep(x), steamVeg(x), ...tailSteps(x)],
+ extras:x=>[X("flour",12),P("salt",.5),P("pepper",.25)],
+ swaps:["tapioca flour → plain flour","coconut oil → vegetable oil"]},
+
+{id:"mashed_sweet_potato", from:"Mashed Sweet Potatoes", meal:"main", time:"30 min",
+ fits:x=>x.cid==="sweet_potato",
+ title:x=>`${x.short()} with mashed sweet potato`,
+ steps:x=>[
+  `Put ${x.A(x.c)}, peeled and cubed, in a pot with half the salt and enough water to cover. Simmer 8–10 minutes until fork-tender.`,
+  `Drain, return to the pot, add ${x.butter()} and the rest of the salt, and mash to your liking.`,
+  proteinStep(x), steamVeg(x), ...tailSteps(x)],
+ extras:x=>[...x.butterExtra(),P("salt",.5),P("pepper",.25)],
+ swaps:["butter → margarine"]}
+];
+
+function mealHash(m){
+  const s=m.name+"|"+m.items.map(([f,g])=>f.id+":"+g).join(",");
+  let h=0; for(let i=0;i<s.length;i++) h=(h*31+s.charCodeAt(i))>>>0;
+  return h;
+}
+function recipeCandidates(m,isBreakfast){
+  const x=recipeCtx(m,isBreakfast);
+  return MEALPREP_RECIPES.filter(r=>{
+    try{ return (r.meal==="breakfast")===x.isBreakfast && r.fits(x); }catch(e){ return false; }
+  });
+}
+function recipeFor(m,isBreakfast){
+  const classic=legacyRecipe(m,isBreakfast);
+  const cands=recipeCandidates(m,isBreakfast);
+  if(!cands.length) return classic;
+  /* null = keep the classic Bajan-style recipe in the rotation, unless it
+     is only the generic fallback plate, which a named recipe always beats */
+  const pool=classic.generic ? cands : [null,...cands];
+  const pick=pool[mealHash(m)%pool.length];
+  if(!pick) return classic;
+  const x=recipeCtx(m,isBreakfast);
+  return {title:pick.title(x), time:pick.time, steps:pick.steps(x).filter(Boolean),
+          extras:pick.extras(x), swaps:pick.swaps, from:pick.from, id:pick.id};
 }
 
 /* =====================================================================
@@ -2157,6 +2597,7 @@ function renderPlan(){
         <div class="m-items">${m.items.map(([f,g])=>`${g} g ${f.name}`).join(" · ")}
           <details class="recipe"><summary>Recipe · ${r.time}</summary>
             <ol>${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>
+            ${r.swaps&&r.swaps.length?`<p class="recipe-swaps"><b>Bajan swaps:</b> ${r.swaps.join(" · ")}</p>`:""}
           </details>
         </div>
         ${mealMacroBreakdown(m.tot)}</div>`;}).join("")}
@@ -2250,7 +2691,7 @@ const bestBuy=(f,grams)=>{
    the list marks what's already on hand, first-time buys are flagged,
    and anything under 20% triggers a restock prompt.
    ===================================================================== */
-const STAPLE_FOODS=["veg_oil","olive_oil","margarine","peanut_butter"];   // priced, tracked in grams
+const STAPLE_FOODS=["veg_oil","olive_oil","margarine","peanut_butter","stock_cubes","flour","honey","milk_powder"];   // priced, tracked in grams
 function pantryStore(){
   const m=me();
   if(m){ if(!m.data.pantry) m.data.pantry={}; return m.data.pantry; }
@@ -2301,7 +2742,7 @@ function computeShopRows(){
       const s=state.store, c=packCost(f,s,buyG);
       if(c){ row.buy=`${c.packs} × ${c.entry.n} (${c.entry.g} g)`; row.store=s; row.price=c.price; entryG=c.entry.g; packs=c.packs; }
       else{
-        const alts=FOODS.filter(x=>x.role===f.role && x.id!==f.id && x.prices[s])
+        const alts=f.role==="pantry" ? [] : FOODS.filter(x=>x.role===f.role && x.id!==f.id && x.prices[s])   /* pantry staples have no sensible stand-ins */
                         .map(x=>({x,c:packCost(x,s,buyG)})).sort((a,b)=>a.c.price-b.c.price);
         if(alts.length){ const a=alts[0];
           row.buy=`${a.c.packs} × ${a.c.entry.n} (${a.c.entry.g} g)`; row.store=s; row.price=a.c.price;
