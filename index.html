@@ -56,13 +56,20 @@
   --r-md:12px;
   --r-lg:16px;
   --r-xl:20px;
+  --r-2xl:28px;              /* desktop dialog / large sheet corners */
   --r-pill:980px;
   --hair:.5px;
+
+  /* ---- spacing: a scale, so gaps stop being guessed per rule ---- */
+  --sp-1:4px; --sp-2:8px; --sp-3:12px; --sp-4:16px; --sp-5:20px;
+  --sp-6:24px; --sp-7:32px; --sp-8:40px; --sp-9:56px;
 
   /* ---- elevation: soft, low, never a drop-shadow slab ---- */
   --shadow:0 1px 2px rgba(0,0,0,.04), 0 4px 16px rgba(0,0,0,.05);
   --shadow-lift:0 2px 6px rgba(0,0,0,.06), 0 12px 32px rgba(0,0,0,.09);
   --shadow-pop:0 8px 24px rgba(0,0,0,.10), 0 24px 60px rgba(0,0,0,.16);
+  /* mobile sheet faces up, toward the content it's covering */
+  --shadow-sheet:0 -8px 32px rgba(0,0,0,.14), 0 -2px 8px rgba(0,0,0,.08);
 
   /* ---- type: system face first; it ships optical sizing and
           tracking tables already tuned for legibility ---- */
@@ -120,8 +127,21 @@
     --shadow:0 1px 2px rgba(0,0,0,.3), 0 4px 16px rgba(0,0,0,.4);
     --shadow-lift:0 2px 6px rgba(0,0,0,.35), 0 12px 32px rgba(0,0,0,.5);
     --shadow-pop:0 8px 24px rgba(0,0,0,.45), 0 24px 60px rgba(0,0,0,.6);
+    --shadow-sheet:0 -8px 32px rgba(0,0,0,.5), 0 -2px 8px rgba(0,0,0,.35);
   }
 }
+
+/* =====================================================================
+   RESPONSIVE SCALE — a documented convention, not reusable tokens.
+   CSS custom properties can't be referenced inside @media feature
+   queries, so every breakpoint rule below repeats its literal px value.
+   This comment is the single source of truth for what those values mean.
+
+     480  phone landscape / large phone
+     768  tablet portrait   — first real layout change
+    1024  small desktop / tablet landscape — two-column wizard shell
+    1280  desktop — generous canvas
+   ===================================================================== */
 
 *{box-sizing:border-box;margin:0;padding:0}
 html{
@@ -153,6 +173,17 @@ h1,h2,h3,.display{font-family:var(--display);font-weight:700}
 h1{font-size:clamp(1.5rem,4vw,1.75rem);line-height:1.12;letter-spacing:-.025em}
 h2{font-size:clamp(1.5rem,4.5vw,1.9rem);line-height:1.14;letter-spacing:-.028em;font-weight:700}
 h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
+
+/* ---- named type scale: utility classes for markup that isn't h1/h2/h3.
+        Still the system font — this is a scale, not a new typeface. ---- */
+.text-display{font-family:var(--display);font-weight:800;letter-spacing:-.03em;line-height:1.08;
+  font-size:clamp(2rem,4vw + 1rem,2.75rem)}
+.text-title1{font-family:var(--display);font-weight:700;letter-spacing:-.028em;line-height:1.14;font-size:1.875rem}
+.text-title2{font-family:var(--display);font-weight:700;letter-spacing:-.025em;line-height:1.2;font-size:1.5rem}
+.text-title3{font-family:var(--display);font-weight:600;letter-spacing:-.015em;line-height:1.3;font-size:1.0625rem}
+.text-body{font-weight:400;letter-spacing:-.005em;line-height:1.45;font-size:.9375rem}
+.text-footnote{font-weight:500;letter-spacing:0;line-height:1.4;font-size:.8125rem}
+.text-caption{font-weight:600;letter-spacing:.02em;line-height:1.3;font-size:.75rem;text-transform:uppercase}
 
 /* =====================================================================
    PRESS FEEDBACK — on pointer-down, never on release.
@@ -238,6 +269,36 @@ h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
 .step-pill.done{color:var(--tint)}
 .step-pill.done .dot{background:var(--tint);color:#fff}
 .step-pill.just-done .dot{transform:scale(1.22)}
+
+/* =====================================================================
+   RESPONSIVE SHELL — the app was phone-width only, even on desktop
+   (.wrap capped at 760px with nothing but shrink-only breakpoints below
+   it). This grows the canvas and, at ≥1024px, turns the 7-step wizard
+   into a two-column layout: the stepper becomes a sticky left rail, the
+   step panels sit in .wizard-steps beside it. Pure CSS reflow of the
+   same DOM goStep()/playEnter() already manipulate — no JS changes.
+   ===================================================================== */
+@media(min-width:768px){
+  .wrap{max-width:880px;padding:0 var(--sp-7)}
+}
+@media(min-width:1024px){
+  .topbar-inner.wrap{max-width:1280px}
+  #view-planner{
+    max-width:1280px;margin:0 auto;padding:0 var(--sp-7);
+    display:flex;align-items:flex-start;gap:var(--sp-9);
+  }
+  .stepper{
+    flex:0 0 220px;flex-direction:column;align-items:stretch;
+    position:sticky;top:96px;margin:var(--sp-6) 0;
+    overflow:visible;
+  }
+  .step-pill{justify-content:flex-start}
+  .wizard-steps{flex:1 1 auto;min-width:0;max-width:680px}
+}
+@media(min-width:1280px){
+  .topbar-inner.wrap{max-width:1280px}
+  #view-planner{gap:var(--sp-9);padding:0 var(--sp-8)}
+}
 
 /* =====================================================================
    PANELS — grouped inset cards
@@ -502,18 +563,46 @@ footer{
 }
 
 /* =====================================================================
-   AUTH — a sheet that materialises from the button that opened it
+   SHEET — a real overlay component (scrim + dialog), not an inline panel
+   that just pushes page content around. Mobile gets a bottom sheet with
+   a drag handle; ≥768px gets a centered dialog, reusing the exact
+   materialise motion (blur+scale arriving together, not a plain fade)
+   that the old inline "auth" panel already used — that recipe was right,
+   it just never had a true overlay around it. Generic enough to host any
+   future overlay (confirmations, a recipe detail view), not auth-only.
    ===================================================================== */
-.auth{
-  background:var(--surface);border-radius:var(--r-lg);
-  box-shadow:var(--shadow-pop);padding:18px;margin:16px 0 0;
-  transform-origin:top right;
+.sheet-scrim{
+  position:fixed;inset:0;z-index:90;
+  background:var(--scrim);
+  transition:opacity var(--dur-ui) var(--ease-out);
+}
+.sheet-scrim.hidden{opacity:0;pointer-events:none}
+
+.sheet{
+  position:fixed;z-index:91;left:0;right:0;bottom:0;
+  background:var(--surface);box-shadow:var(--shadow-sheet);
+  border-radius:var(--r-xl) var(--r-xl) 0 0;
+  padding:var(--sp-6);padding-bottom:calc(var(--sp-6) + env(safe-area-inset-bottom));
+  max-height:85vh;overflow-y:auto;
   transition:opacity var(--dur-ui) var(--ease-out),
-             transform var(--dur-ui) var(--ease-spring),
+             transform var(--dur-panel) var(--ease-spring),
              filter var(--dur-ui) var(--ease-out)}
-/* materialise rather than plain-fade: blur and scale move together so the
-   surface reads as arriving, not as opacity being turned up */
-.auth[data-enter]{opacity:0;transform:scale(.96) translate3d(0,-8px,0);filter:blur(3px)}
+.sheet[data-enter]{opacity:0;transform:translate3d(0,100%,0)}
+.sheet-handle{
+  width:36px;height:5px;border-radius:var(--r-pill);
+  background:var(--fill);margin:0 auto var(--sp-4)}
+
+@media(min-width:768px){
+  .sheet{
+    left:50%;right:auto;bottom:auto;top:50%;
+    transform:translate(-50%,-50%);
+    width:min(480px,calc(100vw - 48px));
+    border-radius:var(--r-2xl);max-height:80vh}
+  /* same materialise recipe the inline panel used, now on a true dialog */
+  .sheet[data-enter]{transform:translate(-50%,-58%) scale(.96);filter:blur(3px)}
+  .sheet-handle{display:none}
+}
+
 .auth-inner{display:grid;grid-template-columns:1fr 1fr auto;gap:12px;align-items:end}
 .auth-actions{display:flex;gap:7px;flex-wrap:wrap}
 .auth-note{font-size:.75rem;color:var(--label-3);margin-top:11px;line-height:1.5;letter-spacing:0}
@@ -662,8 +751,9 @@ details.recipe[open]::details-content{block-size:auto}
   /* keep opacity and colour — they're what makes a change legible.
      Drop position, scale and blur. */
   section.panel[data-enter],#view-progress[data-enter],.stagger-in,
-  .auth[data-enter],.toast[data-enter],.toast[data-leave]{transform:none!important}
-  .auth[data-enter],.toast[data-enter],.toast[data-leave]{filter:none!important}
+  .sheet[data-enter],.toast[data-enter],.toast[data-leave]{transform:none!important}
+  .sheet[data-enter],.toast[data-enter],.toast[data-leave]{filter:none!important}
+  .sheet-scrim{transition:opacity 140ms!important}
   .btn:active,.btn-ghost:active,.chip:active,.seg button:active,
   .topnav button:active,.week-tabs button:active,.del-btn:active,
   .choice:active,.check-row:active,details.recipe summary:active{transform:none!important}
@@ -708,7 +798,9 @@ details.recipe[open]::details-content{block-size:auto}
 </header>
 
 <main class="wrap">
-  <div class="auth hidden" id="authPanel">
+  <div class="sheet-scrim hidden" id="authScrim" onclick="toggleAuth()"></div>
+  <div class="sheet hidden" id="authPanel" role="dialog" aria-modal="true">
+    <div class="sheet-handle"></div>
     <!-- CLOUD MODE (shown when a Firebase config is present) -->
     <div id="authCloud" class="hidden">
       <div class="auth-inner">
@@ -753,6 +845,12 @@ details.recipe[open]::details-content{block-size:auto}
 
   <div id="view-planner">
   <nav class="stepper" id="stepper" aria-label="Progress"></nav>
+
+  <!-- Added purely as a layout container for the ≥1024px two-column shell
+       (stepper becomes a sticky left rail, this becomes the right column).
+       goStep()'s selector is a descendant query, so it keeps finding these
+       panels through this wrapper with no JS change. -->
+  <div class="wizard-steps">
 
   <!-- STEP 1: ABOUT YOU -->
   <section class="panel" id="step-1">
@@ -930,7 +1028,9 @@ details.recipe[open]::details-content{block-size:auto}
       <button class="btn btn-primary" onclick="goView('progress')">Go to my progress</button>
     </div>
   </section>
-  </div>
+
+  </div><!-- /.wizard-steps -->
+  </div><!-- /#view-planner -->
 
   <!-- PROGRESS VIEW -->
   <div id="view-progress" class="hidden">
@@ -1126,14 +1226,21 @@ const FB_ERRORS={"auth/invalid-email":"That email doesn't look right.",
  "auth/network-request-failed":"Network problem — check your connection."};
 
 function toggleAuth(){
-  const p=document.getElementById("authPanel");
-  if(p.classList.contains("hidden")){ refreshAuthUI(); playEnter(p,"scale"); }
-  else{
-    /* exit is quicker than entry — the user has already decided */
-    p.dataset.enter="scale";
+  const p=document.getElementById("authPanel"), scrim=document.getElementById("authScrim");
+  if(p.classList.contains("hidden")){
+    refreshAuthUI(); scrim.classList.remove("hidden"); playEnter(p,"scale");
+  } else {
+    /* exit is quicker than entry — the user has already decided.
+       150ms is tuned against the sheet's own --dur-panel (340ms) exit —
+       if that duration changes, this needs to move with it or the panel
+       gets hidden mid-transition. */
+    p.dataset.enter="scale"; scrim.classList.add("hidden");
     setTimeout(()=>{p.classList.add("hidden");delete p.dataset.enter;},150);
   }
 }
+document.addEventListener("keydown",e=>{
+  if(e.key==="Escape" && !document.getElementById("authPanel").classList.contains("hidden")) toggleAuth();
+});
 
 /* ---------------------------------------------------------------------
    TOASTS — transient confirmation for actions that previously gave none.
