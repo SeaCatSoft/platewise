@@ -927,8 +927,13 @@ details.recipe[open]::details-content{block-size:auto}
   #view-report .doc-body{overflow:visible}
   #view-report .day-card{break-inside:avoid;page-break-inside:avoid;margin-bottom:16px}
   #view-report .doc-menu tr,#view-report .doc-foot{break-inside:avoid;page-break-inside:avoid}
-  #view-report table,#view-report .report-sub{break-inside:avoid;page-break-inside:avoid}
-  #view-report .report-section h3,#view-report .report-sub{break-after:avoid}
+  /* short tables stay whole; the shopping list is longer than a page, so it
+     breaks between rows (never through one) and repeats its header */
+  #view-report .doc-menu,#view-report .rt-prep{break-inside:avoid;page-break-inside:avoid}
+  #view-report table tr{break-inside:avoid;page-break-inside:avoid}
+  #view-report thead{display:table-header-group}
+  #view-report .report-sub{break-inside:avoid;break-after:avoid}
+  #view-report .doc h3{break-after:avoid}
 }
 </style>
 </head>
