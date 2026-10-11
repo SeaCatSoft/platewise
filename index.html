@@ -326,16 +326,72 @@ h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
 .ro-checks{display:flex;gap:var(--sp-5);flex-wrap:wrap;margin-top:var(--sp-4);font-size:.875rem}
 .ro-check{display:flex;align-items:center;gap:8px;cursor:pointer}
 .ro-check input{width:18px;height:18px;accent-color:var(--tint)}
-.report-brand{margin-bottom:var(--sp-4)}
-.rb-name{font-size:1.375rem;font-weight:800;letter-spacing:-.025em;color:var(--tint);line-height:1.2}
-.rb-contact{font-size:.8125rem;color:var(--label-3)}
-.report-section{margin-top:var(--sp-7)}
-.report-section h3{margin-bottom:var(--sp-1)}
-.report-section .hint{margin-bottom:var(--sp-3)}
 .report-sub{margin:var(--sp-5) 0 var(--sp-2);font-size:.9375rem;font-weight:700;letter-spacing:-.015em}
 .report-table td:first-child{font-weight:600}
 .report-table .rt-sub{display:block;font-weight:400;font-size:.75rem;color:var(--label-3)}
-.report-foot{margin-top:var(--sp-6);font-size:.75rem;color:var(--label-3);line-height:1.5}
+/* ---- the report document: a light "paper" that looks the same on screen,
+        in print and in a saved PDF. Its colours are its own, so dark mode
+        never reaches it, and print-color-adjust keeps the backgrounds that
+        browsers otherwise strip from printed pages. ---- */
+.doc{
+  color-scheme:light;
+  --surface:#FFFFFF; --surface-2:#F3F6F5; --fill:#E4EAE8; --fill-2:#F3F6F5;
+  --label:#16201E; --label-2:#2F3B38; --label-3:#5C6865; --label-4:#8A9693;
+  --separator:#DCE3E1; --tint:#0E7C6B; --tint-press:#0A6255; --tint-soft:#E1F0ED;
+  --gold:#B9791B; --gold-soft:#FBF1DE; --coral:#C93E28; --coral-soft:#FBE9E5; --green:#1E7A45;
+  background:#fff; color:var(--label); font-size:14px; line-height:1.45;
+  border:var(--hair) solid var(--separator); border-radius:var(--r-lg); overflow:hidden;
+  -webkit-print-color-adjust:exact; print-color-adjust:exact;
+}
+.doc *{-webkit-print-color-adjust:exact; print-color-adjust:exact}
+.doc-head{background:linear-gradient(135deg,#0E7C6B 0%,#09574C 100%); color:#fff; padding:28px 32px 26px}
+.doc-top{display:flex; justify-content:space-between; align-items:baseline; gap:16px; margin-bottom:26px}
+.doc-brand{font-weight:800; font-size:1.125rem; letter-spacing:-.015em}
+.doc-contact{font-size:.8125rem; opacity:.88; text-align:right}
+.doc-kicker{font-size:.6875rem; font-weight:700; letter-spacing:.16em; text-transform:uppercase; opacity:.8}
+.doc-title{font-size:2.5rem; font-weight:800; letter-spacing:-.035em; line-height:1.05; margin:6px 0 8px; color:#fff}
+.doc-meta{font-size:.9375rem; opacity:.92}
+.doc-stats{display:grid; grid-template-columns:repeat(4,1fr); gap:12px; padding:22px 32px 0}
+.ds{background:var(--surface-2); border-radius:12px; padding:12px 14px 11px; border-top:4px solid var(--label)}
+.ds b{display:block; font-size:1.5rem; font-weight:800; letter-spacing:-.03em; line-height:1.1; font-variant-numeric:tabular-nums}
+.ds span{font-size:.75rem; color:var(--label-3); font-weight:600}
+.ds-p{border-top-color:var(--tint)} .ds-c{border-top-color:var(--gold)} .ds-f{border-top-color:var(--coral)}
+.doc-body{padding:8px 32px 30px; overflow-x:auto}
+.doc h3{
+  font-size:1.0625rem; font-weight:800; letter-spacing:-.02em; margin:30px 0 4px; padding-left:10px;
+  border-left:4px solid var(--tint); line-height:1.2; color:var(--label)}
+.doc .hint{margin:0 0 12px 14px; color:var(--label-3)}
+.doc-menu{width:100%; border-collapse:collapse; font-size:.8125rem; margin-top:12px; background:none; border-radius:0; overflow:visible}
+.doc-menu th{
+  background:var(--tint-soft); color:var(--tint); font-size:.6875rem; letter-spacing:.07em; text-transform:uppercase;
+  padding:8px 10px; text-align:left; border-bottom:none}
+.doc-menu td,.doc-menu tbody th{padding:9px 10px; border-bottom:var(--hair) solid var(--separator); vertical-align:top; text-align:left; background:none}
+.doc-menu tbody th{
+  width:54px; color:var(--label); font-size:.8125rem; font-weight:800; letter-spacing:0; text-transform:none}
+.doc-menu tbody tr:nth-child(even) td,.doc-menu tbody tr:nth-child(even) th{background:var(--fill-2)}
+.doc-menu td b{display:block; font-weight:600; line-height:1.3; color:var(--label)}
+.doc-menu td small{display:block; margin-top:2px; font-size:.6875rem; color:var(--label-3)}
+.doc-menu th.num,.doc-menu td.num{text-align:right; white-space:nowrap; font-variant-numeric:tabular-nums}
+.doc .report-table{width:100%; border-collapse:collapse; font-size:.8125rem; margin-top:10px; background:none; border-radius:0; overflow:visible}
+.doc .report-table th{
+  background:var(--tint-soft); color:var(--tint); font-size:.6875rem; letter-spacing:.07em; text-transform:uppercase;
+  padding:8px 10px; text-align:left; border-bottom:none}
+.doc .report-table td{padding:9px 10px; border-bottom:var(--hair) solid var(--separator); vertical-align:top; text-align:left; background:none}
+.doc .report-table tbody tr:nth-child(even) td{background:var(--fill-2)}
+.doc .report-table td:last-child,.doc .report-table th:last-child{text-align:right; white-space:nowrap}
+.doc .report-table.rt-prep td:last-child,.doc .report-table.rt-prep th:last-child{text-align:left; white-space:normal}
+.doc .report-table td:nth-child(2){font-variant-numeric:tabular-nums}
+.doc .report-table .rt-sub{color:var(--label-3)}
+.doc-foot{margin-top:34px; padding-top:14px; border-top:var(--hair) solid var(--separator); font-size:.75rem; color:var(--label-3); line-height:1.55}
+.doc-foot b{color:var(--label-2)}
+@media(max-width:640px){
+  .doc-head{padding:22px 20px 20px}
+  .doc-title{font-size:1.875rem}
+  .doc-stats{grid-template-columns:repeat(2,1fr); padding:16px 20px 0}
+  .doc-body{padding:4px 18px 24px}
+  .doc-menu{font-size:.75rem}
+  .doc-menu th,.doc-menu td{padding:7px 6px}
+}
 @media(max-width:640px){
   .panel{padding:20px 18px;border-radius:var(--r-lg)}
   .wrap{padding:0 16px}
@@ -841,7 +897,12 @@ details.recipe[open]::details-content{block-size:auto}
   .chart-wrap .trend{animation:none;stroke-dashoffset:0}
   /* the report is the one view meant to be printed/saved as a PDF —
      keep each day whole rather than splitting it across a page break */
+  @page{size:A4; margin:10mm}
+  #view-report .panel{padding:0}
+  #view-report .doc{border:none; border-radius:0; overflow:visible}
+  #view-report .doc-body{overflow:visible}
   #view-report .day-card{break-inside:avoid;page-break-inside:avoid;margin-bottom:16px}
+  #view-report .doc-menu tr,#view-report .doc-foot{break-inside:avoid;page-break-inside:avoid}
   #view-report table,#view-report .report-sub{break-inside:avoid;page-break-inside:avoid}
   #view-report .report-section h3,#view-report .report-sub{break-after:avoid}
 }
@@ -1166,26 +1227,14 @@ details.recipe[open]::details-content{block-size:auto}
           </div>
         </div>
         <div class="ro-checks">
+          <label class="ro-check"><input type="checkbox" id="optDays" checked onchange="renderReport()"> Daily breakdown</label>
           <label class="ro-check"><input type="checkbox" id="optPrep" checked onchange="renderReport()"> Prep-day plan</label>
           <label class="ro-check"><input type="checkbox" id="optShop" checked onchange="renderReport()"> Shopping list &amp; cost</label>
           <label class="ro-check"><input type="checkbox" id="optRecipes" onchange="renderReport()"> Full recipes</label>
         </div>
       </div>
-      <div class="report-brand hidden" id="reportBrand">
-        <div class="rb-name" id="rbName"></div>
-        <div class="rb-contact" id="rbContact"></div>
-      </div>
-      <div class="report-head">
-        <div>
-          <h2 id="reportTitle">Weekly menu</h2>
-          <p class="lede" id="reportSubtitle"></p>
-        </div>
-      </div>
       <div class="week-tabs" id="reportWeekTabs"></div>
-      <div id="reportBody"></div>
-      <div class="report-section" id="reportPrep"></div>
-      <div class="report-section" id="reportShop"></div>
-      <p class="report-foot" id="reportFoot"></p>
+      <article class="doc" id="reportDoc"></article>
     </section>
   </div>
 </main>
@@ -2746,16 +2795,12 @@ const optOn=id=>{ const el=document.getElementById(id); return !!(el&&el.checked
 const mealIsBreakfast=mi=>state.mealsPerDay===3&&mi===0;
 
 /* the owner's business name + contact line, kept on this device */
-function paintBrand(){
-  const b=DB.get("pw_brand",{name:"",contact:""});
-  document.getElementById("rbName").textContent=b.name||"";
-  document.getElementById("rbContact").textContent=b.contact||"";
-  document.getElementById("reportBrand").classList.toggle("hidden",!(b.name||b.contact));
-}
+const escapeHTML=s=>String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+let _brandTimer=null;
 function saveBrand(){
   DB.set("pw_brand",{name:document.getElementById("brandName").value.trim(),
                      contact:document.getElementById("brandContact").value.trim()});
-  paintBrand();
+  clearTimeout(_brandTimer); _brandTimer=setTimeout(renderReport,250);
 }
 
 /* ---- prep-day plan: what to cook once, and which meals it feeds ---- */
@@ -2786,7 +2831,7 @@ function prepHTML(wkObj){
     groups.forEach(([role,label])=>{
       const rows=Object.values(acc).filter(a=>a.f.role===role).sort((x,y)=>y.g-x.g);
       if(!rows.length) return;
-      out.push(`<table class="report-table"><thead><tr><th>${label}</th><th>Total to cook</th><th>Used in</th></tr></thead><tbody>`+
+      out.push(`<table class="report-table rt-prep"><thead><tr><th>${label}</th><th>Total to cook</th><th>Used in</th></tr></thead><tbody>`+
         rows.map(a=>`<tr><td>${a.f.name}<span class="rt-sub">${[...a.titles].slice(0,3).join(" · ")}</span></td>
           <td>${unitAmt(a.g,"g")}</td><td>${a.uses.join(", ")}</td></tr>`).join("")+`</tbody></table>`);
     });
@@ -2847,23 +2892,45 @@ async function copyReportText(){
 function renderReport(){
   if(!state.plan) return;
   const T=state.targets, g=T.goal;
-  const clientName = Account.user ? Account.label() : null;
+  const client = Account.user ? Account.label() : "";
   reportWeek=Math.min(reportWeek,state.plan.length-1);
-  const wkObj=state.plan[reportWeek], WT=wkObj.targets;
+  const wkObj=state.plan[reportWeek], WT=wkObj.targets, nWeeks=state.plan.length;
   const b=DB.get("pw_brand",{name:"",contact:""});
   const bn=document.getElementById("brandName"), bc=document.getElementById("brandContact");
   if(document.activeElement!==bn) bn.value=b.name||"";
   if(document.activeElement!==bc) bc.value=b.contact||"";
-  paintBrand();
-  document.getElementById("reportTitle").textContent = clientName ? `${clientName} — weekly menu` : "Weekly menu";
-  document.getElementById("reportSubtitle").textContent =
-    `${g.name} · ${state.plan.length>1?`week ${reportWeek+1} of ${state.plan.length} (${DIETS[wkObj.diet].name}) · `:""}${state.mealsPerDay} meal${state.mealsPerDay>1?'s':''}/day · `+
-    `daily target ${WT.kcal} kcal (P ${WT.protein}g · C ${WT.carbs}g · F ${WT.fat}g)`+
-    (DIETS[wkObj.diet].keto?" · keto week":"")+".";
-  document.getElementById("reportWeekTabs").innerHTML = state.plan.length>1 ? state.plan.map((wk,i)=>
+  document.getElementById("reportWeekTabs").innerHTML = nWeeks>1 ? state.plan.map((wk,i)=>
     `<button type="button" class="${i===reportWeek?'on':''}" onclick="reportWeek=${i};renderReport()">Week ${i+1} · ${DIETS[wk.diet].name}</button>`).join("") : "";
-  const withRecipes=optOn("optRecipes");
-  document.getElementById("reportBody").innerHTML = wkObj.days.map((d,di)=>`
+
+  const mealNames=wkObj.days[0].meals.map(m=>m.name);
+  const weekLabel = nWeeks>1 ? `Week ${reportWeek+1} of ${nWeeks}` : "1-week plan";
+  const dietLabel = DIETS[wkObj.diet].name + (DIETS[wkObj.diet].keto?" week":"");
+  const withRecipes=optOn("optRecipes"), withDays=optOn("optDays");
+  const num=n=>Math.round(n).toLocaleString();
+
+  const head=`<header class="doc-head">
+      <div class="doc-top"><span class="doc-brand">${escapeHTML(b.name||"")}</span><span class="doc-contact">${escapeHTML(b.contact||"")}</span></div>
+      <div class="doc-kicker">Weekly meal plan</div>
+      <h1 class="doc-title">${escapeHTML(client||"Your meal plan")}</h1>
+      <p class="doc-meta">${g.name} · ${weekLabel} · ${dietLabel} · ${state.mealsPerDay} meal${state.mealsPerDay>1?"s":""} a day</p>
+    </header>
+    <section class="doc-stats">
+      <div class="ds"><b>${num(WT.kcal)}</b><span>calories / day</span></div>
+      <div class="ds ds-p"><b>${WT.protein} g</b><span>protein / day</span></div>
+      <div class="ds ds-c"><b>${WT.carbs} g</b><span>carbs / day</span></div>
+      <div class="ds ds-f"><b>${WT.fat} g</b><span>fat / day</span></div>
+    </section>`;
+
+  const menu=`<h3>This week's menu</h3>
+    <table class="doc-menu"><thead><tr><th></th>${mealNames.map(n=>`<th>${escapeHTML(n)}</th>`).join("")}<th class="num">Day total</th></tr></thead><tbody>
+    ${wkObj.days.map((d,di)=>`<tr><th scope="row">${DAY_NAMES[di].slice(0,3)}</th>
+      ${d.meals.map((m,mi)=>{ const r=recipeFor(m,mealIsBreakfast(mi));
+        return `<td><b>${r.title}</b><small>${fmt(m.tot.k)} kcal · P ${fmt(m.tot.p)}g</small></td>`; }).join("")}
+      <td class="num"><b>${num(d.dayTot.k)}</b><small>kcal</small></td></tr>`).join("")}
+    </tbody></table>`;
+
+  const days = withDays ? `<h3>Daily breakdown</h3><p class="hint">Calories and macros for every meal, with how each day compares to the daily target.</p>`+
+    wkObj.days.map((d,di)=>`
     <div class="day-card">
       <div class="day-head"><b>${DAY_NAMES[di]}</b></div>
       ${dayMacroBreakdown(d.dayTot,WT)}
@@ -2875,12 +2942,16 @@ function renderReport(){
           ${withRecipes?`<ol class="report-steps">${r.steps.map(s=>`<li>${s}</li>`).join("")}</ol>${r.swaps&&r.swaps.length?`<p class="recipe-swaps" style="padding:0"><b>Bajan swaps:</b> ${r.swaps.join(" · ")}</p>`:""}`:""}
         </div>
         ${mealMacroBreakdown(m.tot)}</div>`;}).join("")}
-    </div>`).join("");
-  document.getElementById("reportPrep").innerHTML = optOn("optPrep") ? prepHTML(wkObj) : "";
-  document.getElementById("reportShop").innerHTML = optOn("optShop") ? shopHTML(wkObj) : "";
-  document.getElementById("reportFoot").textContent =
-    `Prepared ${new Date().toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"})}. `+
-    `Calories and macros are estimates. Prices come from the Government of Barbados retail price survey (Nov–Dec 2025) and may differ in store.`;
+    </div>`).join("") : "";
+
+  const foot=`<footer class="doc-foot">
+      ${b.name||b.contact?`<b>${escapeHTML([b.name,b.contact].filter(Boolean).join(" · "))}</b><br>`:""}
+      Prepared ${new Date().toLocaleDateString(undefined,{day:"numeric",month:"long",year:"numeric"})}.
+      Calories and macros are estimates. Prices come from the Government of Barbados retail price survey (Nov–Dec 2025) and may differ in store.
+    </footer>`;
+
+  document.getElementById("reportDoc").innerHTML = head +
+    `<div class="doc-body">${menu}${days}${optOn("optPrep")?prepHTML(wkObj):""}${optOn("optShop")?shopHTML(wkObj):""}${foot}</div>`;
 }
 
 /* =====================================================================
