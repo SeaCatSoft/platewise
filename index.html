@@ -719,6 +719,12 @@ footer{
   font-size:.625rem;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:var(--tint);flex:none}
 .client-row-empty{font-size:.8125rem;color:var(--label-3);padding:6px 2px}
+.client-item{display:flex;gap:6px;align-items:stretch}
+.client-item .client-row{flex:1;min-width:0}
+.cl-act{
+  flex:none;border:none;background:var(--fill-2);color:var(--label-3);
+  border-radius:var(--r-md);min-width:42px;padding:0 10px;font-size:.9375rem;font-weight:600}
+.cl-act.danger.armed{background:var(--coral);color:#fff;font-size:.75rem;letter-spacing:0}
 .cloud-box{margin-top:var(--sp-5);padding-top:var(--sp-4);border-top:var(--hair) solid var(--separator)}
 .cloud-box .auth-inner{grid-template-columns:1fr}
 .auth-note{font-size:.75rem;color:var(--label-3);margin-top:11px;line-height:1.5;letter-spacing:0}
@@ -1429,14 +1435,32 @@ const Cloud = {
       }catch(e){ this.setStatus("Couldn't back up: "+(e.code||e.message||e)); }
     },700);
   },
+  /* deleting writes a tombstone, not nothing: otherwise another device that
+     still holds the client would upload it again on its next sync */
+  remove(name){
+    clearTimeout(this._t[name]);
+    if(!this.user||!window.FB) return;
+    window.FB.saveClient(this.user.uid,this.id(name),{name,deleted:true,json:"",updatedAt:Date.now()})
+      .catch(e=>this.setStatus("Couldn't remove from backup: "+(e.code||e.message||e)));
+  },
   async pull(){
     if(!this.user||!window.FB) return;
     if(Account.user) syncAccountData();               // don't let a download clobber unsaved edits
     this.setStatus("Syncing…");
     const remote=await window.FB.listClients(this.user.uid);
     const p=DB.get("pw_profiles",{}), seen=new Set();
-    let down=0, up=0, activeChanged=false;
+    let down=0, up=0, activeChanged=false, activeRemoved=false;
     for(const r of remote){
+      if(r.deleted){
+        const name=r.name; if(!name) continue;
+        seen.add(name);
+        const local=p[name];
+        if(local && (local.updatedAt||0) <= (r.updatedAt||0)){
+          delete p[name];
+          if(Account.user && Account.user.name===name) activeRemoved=true;
+        }else if(local){ this.push(name,local); up++; }   // edited after it was deleted elsewhere: keep it
+        continue;
+      }
       let blob; try{ blob=JSON.parse(r.json); }catch(e){ continue; }
       const name=r.name||blob.name; if(!name) continue;
       seen.add(name);
@@ -1451,7 +1475,8 @@ const Cloud = {
       this.push(name,p[name]); up++;
     }
     DB.set("pw_profiles",p);
-    if(activeChanged){
+    if(activeRemoved) clearActiveClient();
+    else if(activeChanged){
       Account.data=p[Account.user.name];
       applyClientSnapshot(Account.data); renderStepper();
       if(state.plan) renderPlan();
@@ -1619,12 +1644,16 @@ function renderClientList(){
      free text and would need fragile quote-escaping in an attribute */
   box.innerHTML = names.map(n=>{
     const active = Account.user && Account.user.name===n;
-    return `<button type="button" class="client-row ${active?'on':''}">
-      <span><span class="cl-name"></span><span class="cl-meta"></span></span>
-      ${active?'<span class="cl-active">Active</span>':''}</button>`;
+    return `<div class="client-item">
+      <button type="button" class="client-row ${active?'on':''}">
+        <span><span class="cl-name"></span><span class="cl-meta"></span></span>
+        ${active?'<span class="cl-active">Active</span>':''}</button>
+      <button type="button" class="cl-act" data-act="rename" title="Rename" aria-label="Rename client">✎</button>
+      <button type="button" class="cl-act danger" data-act="delete" title="Delete" aria-label="Delete client">✕</button>
+    </div>`;
   }).join("");
-  [...box.querySelectorAll(".client-row")].forEach((row,i)=>{
-    const n=names[i];
+  [...box.querySelectorAll(".client-item")].forEach((item,i)=>{
+    const n=names[i], row=item.querySelector(".client-row");
     row.dataset.name=n;
     row.querySelector(".cl-name").textContent=n;
     const d=p[n]||{};
@@ -1632,7 +1661,47 @@ function renderClientList(){
     const dietName = d.diet && d.diet!=="standard" ? DIETS[d.diet].name : null;
     row.querySelector(".cl-meta").textContent = [goalName,dietName].filter(Boolean).join(" · ") || (d.plan?"Plan ready":"No plan yet");
     row.addEventListener("click",()=>switchClient(n));
+    item.querySelector('[data-act="rename"]').addEventListener("click",()=>renameClient(n));
+    const del=item.querySelector('[data-act="delete"]');
+    del.addEventListener("click",()=>{
+      /* two taps: the first arms the button, the second deletes */
+      if(!del.classList.contains("armed")){
+        del.classList.add("armed"); del.textContent="Delete?";
+        setTimeout(()=>{ if(del.isConnected){ del.classList.remove("armed"); del.textContent="✕"; } },3500);
+      }else deleteClient(n);
+    });
   });
+}
+function clearActiveClient(){
+  Account.user=null; Account.data=null; DB.set("pw_active",null);
+  applyClientSnapshot(null); renderStepper(); goStep(1);
+}
+function deleteClient(name){
+  const p=DB.get("pw_profiles",{}); if(!p[name]) return;
+  delete p[name]; DB.set("pw_profiles",p);
+  Cloud.remove(name);
+  if(Account.user && Account.user.name===name) clearActiveClient();
+  refreshAuthUI(); renderProgress();
+  toast(`${name} deleted.`);
+}
+function renameClient(oldName){
+  const input=window.prompt("Rename client",oldName);
+  if(input===null) return;
+  const name=input.trim().slice(0,24);
+  if(!name || name===oldName) return;
+  let p=DB.get("pw_profiles",{});
+  if(p[name]){ toast(`There is already a client called ${name}.`,"!"); return; }
+  const wasActive=Account.user && Account.user.name===oldName;
+  if(wasActive) syncAccountData();                 // keep unsaved edits
+  p=DB.get("pw_profiles",{});
+  if(!p[oldName]) return;
+  p[name]=p[oldName]; delete p[oldName];
+  p[name].updatedAt=Date.now();
+  DB.set("pw_profiles",p);
+  Cloud.remove(oldName); Cloud.push(name,p[name]);
+  if(wasActive){ Account.user={name}; Account.data=p[name]; DB.set("pw_active",name); }
+  refreshAuthUI(); renderProgress();
+  toast(`Renamed to ${name}.`);
 }
 /* ----- local mode: one function activates (and, if needed, creates) a
          client — used by both "add new" and clicking an existing row,
