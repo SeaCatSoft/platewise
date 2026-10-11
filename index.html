@@ -238,9 +238,20 @@ h3{font-size:1.0625rem;line-height:1.3;letter-spacing:-.015em;font-weight:600}
   color:var(--label-2);letter-spacing:-.01em}
 .topnav button.on{background:var(--tint);color:#fff}
 .topnav button.profile{background:var(--gold-soft);color:var(--gold)}
+/* a long client name must shrink with an ellipsis, never push the page wider */
+.brand{min-width:0}
+.topnav{min-width:0}
+.topnav button{white-space:nowrap;min-height:34px}
+.topnav button.profile{min-width:0;max-width:min(170px,38vw);overflow:hidden;text-overflow:ellipsis}
 @media(max-width:620px){
   .brand span{display:none}
   .topnav button{padding:6px 11px;font-size:.78125rem}
+}
+@media(max-width:420px){
+  .brand>div:nth-child(2){display:none}   /* the title text only (the nav lives in .brand too): the logo mark alone keeps one row */
+  .topbar-inner{gap:8px}
+  .topnav{flex:1;justify-content:flex-end}
+  .topnav button{padding:6px 10px}
 }
 
 /* =====================================================================
@@ -823,6 +834,13 @@ details.recipe[open]::details-content{block-size:auto}
 .pantry-row.low .fill-bar div{background:var(--coral)}
 .p-actions{display:flex;gap:6px;align-items:center}
 @media(max-width:640px){.pantry-row{grid-template-columns:1fr auto}.fill-bar{grid-column:1/-1}}
+/* wide tables scroll inside their own box instead of widening the page */
+#shoppingBody,#checklistBody,#progList{overflow-x:auto;-webkit-overflow-scrolling:touch}
+@media(max-width:640px){
+  .check-row{flex-wrap:wrap}
+  .check-row .ck-main{flex:1 1 55%;min-width:0}
+  .check-row .ck-side{flex:1 0 100%;padding-left:34px;white-space:normal}
+}
 
 /* =====================================================================
    PROGRESS
