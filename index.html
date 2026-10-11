@@ -882,6 +882,9 @@ details.recipe[open]::details-content{block-size:auto}
 .toast[data-enter],.toast[data-leave]{
   opacity:0;transform:translate3d(0,130%,0) scale(.94);filter:blur(4px)}
 .toast .tk{color:var(--tint);font-size:1rem;line-height:1;flex:none}
+.toast-action{
+  flex:none;border:none;border-radius:var(--r-pill);padding:5px 12px;margin-left:4px;
+  background:var(--tint);color:#fff;font-size:.8125rem;font-weight:700}
 
 /* =====================================================================
    ACCESSIBILITY — reduced motion, transparency and contrast are three
@@ -1635,10 +1638,13 @@ document.addEventListener("keydown",e=>{
 const toastHost=(()=>{ const d=document.createElement("div");
   d.className="toast-viewport"; d.setAttribute("aria-live","polite");
   document.body.appendChild(d); return d; })();
-function toast(msg,mark){
+/* msg is HTML: escape anything user-typed (client names) before passing it in.
+   An optional {label, fn} adds an action button and keeps the toast up longer. */
+function toast(msg,mark,action){
   const t=document.createElement("div");
   t.className="toast"; t.dataset.enter="1";
-  t.innerHTML=`<span class="tk">${mark||"✓"}</span><span>${msg}</span>`;
+  t.innerHTML=`<span class="tk">${mark||"✓"}</span><span>${msg}</span>`+
+    (action?`<button type="button" class="toast-action">${action.label}</button>`:"");
   toastHost.appendChild(t);
   void t.offsetWidth;
   requestAnimationFrame(()=>delete t.dataset.enter);
@@ -1647,8 +1653,11 @@ function toast(msg,mark){
     t.addEventListener("transitionend",()=>t.remove(),{once:true});
     setTimeout(()=>t.remove(),600);                 // belt-and-braces
   };
-  const timer=setTimeout(close,3200);
+  const timer=setTimeout(close,action?9000:3200);
   t.addEventListener("click",()=>{clearTimeout(timer);close();});
+  if(action) t.querySelector(".toast-action").addEventListener("click",e=>{
+    e.stopPropagation(); clearTimeout(timer); close(); action.fn();
+  });
 }
 function refreshAuthUI(){
   document.getElementById("profileBtn").textContent = Account.user? ("👤 "+Account.label()) : "Clients";
@@ -1705,11 +1714,24 @@ function clearActiveClient(){
 }
 function deleteClient(name){
   const p=DB.get("pw_profiles",{}); if(!p[name]) return;
+  const removed=p[name], wasActive=!!(Account.user && Account.user.name===name);
   delete p[name]; DB.set("pw_profiles",p);
   Cloud.remove(name);
-  if(Account.user && Account.user.name===name) clearActiveClient();
+  if(wasActive) clearActiveClient();
   refreshAuthUI(); renderProgress();
-  toast(`${name} deleted.`);
+  toast(`${escapeHTML(name)} deleted.`,"✕",{label:"Undo",fn:()=>undoDelete(name,removed,wasActive)});
+}
+/* put a deleted client back. It gets a fresh updatedAt, so it outranks the
+   tombstone already written to the cloud and is uploaded again */
+function undoDelete(name,record,wasActive){
+  const p=DB.get("pw_profiles",{});
+  if(p[name]){ toast(`${escapeHTML(name)} already exists again.`,"!"); return; }
+  p[name]=record; p[name].updatedAt=Date.now();
+  DB.set("pw_profiles",p);
+  Cloud.push(name,p[name]);
+  refreshAuthUI();
+  if(wasActive) activateClient(name);
+  toast(`${escapeHTML(name)} restored.`);
 }
 function renameClient(oldName){
   const input=window.prompt("Rename client",oldName);
@@ -1717,7 +1739,7 @@ function renameClient(oldName){
   const name=input.trim().slice(0,24);
   if(!name || name===oldName) return;
   let p=DB.get("pw_profiles",{});
-  if(p[name]){ toast(`There is already a client called ${name}.`,"!"); return; }
+  if(p[name]){ toast(`There is already a client called ${escapeHTML(name)}.`,"!"); return; }
   const wasActive=Account.user && Account.user.name===oldName;
   if(wasActive) syncAccountData();                 // keep unsaved edits
   p=DB.get("pw_profiles",{});
@@ -1728,7 +1750,7 @@ function renameClient(oldName){
   Cloud.remove(oldName); Cloud.push(name,p[name]);
   if(wasActive){ Account.user={name}; Account.data=p[name]; DB.set("pw_active",name); }
   refreshAuthUI(); renderProgress();
-  toast(`Renamed to ${name}.`);
+  toast(`Renamed to ${escapeHTML(name)}.`);
 }
 /* ----- local mode: one function activates (and, if needed, creates) a
          client — used by both "add new" and clicking an existing row,

@@ -197,6 +197,16 @@ async function logicSuite(){
     t(G,"renaming onto an existing name is refused",names().includes("Alice Smith"),"");
     activateClient("Bob"); deleteClient("Bob");
     t(G,"deleting the active client clears the selection",Account.user===null&&!names().includes("Bob"),"");
+    const undoBtn=document.querySelector(".toast-action");
+    t(G,"deleting offers an Undo",!!undoBtn&&/Undo/.test(undoBtn.textContent),"");
+    if(undoBtn) undoBtn.click();
+    t(G,"Undo brings the client back and re-selects them",names().includes("Bob")&&Account.user&&Account.user.name==="Bob","");
+    // a hostile client name must not be able to inject markup through the confirmation toast
+    const evil="<img src=x onerror=window.__pwned=1>";
+    DB.set("pw_profiles",{...DB.get("pw_profiles"),[evil]:Account.blank()});
+    deleteClient(evil); await sleep(50);
+    t(G,"client names are escaped in messages",!window.__pwned&&!document.querySelector('.toast img'),"");
+    document.querySelectorAll(".toast").forEach(e=>e.remove());
 
     // cloud sync against an in-memory Firestore
     const realFB=window.FB, store={}; const writes=[];
@@ -230,6 +240,8 @@ async function logicSuite(){
     t(G,"sync: a client edited after it was deleted elsewhere is kept",!!q.EditedAfterDelete&&!store.u1.EditedAfterDelete.deleted,"");
     deleteClient("Newer"); await sleep(300);
     t(G,"deleting writes a tombstone to the cloud",store.u1.Newer&&store.u1.Newer.deleted===true,"");
+    const ub=document.querySelector(".toast-action"); if(ub) ub.click(); await sleep(1000);
+    t(G,"Undo overwrites the cloud tombstone with the restored client",!!store.u1.Newer&&!store.u1.Newer.deleted&&JSON.parse(store.u1.Newer.json).weight===90,"");
     window.FB=realFB; Cloud.user=null;
   });
 
