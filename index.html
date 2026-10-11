@@ -1427,11 +1427,15 @@ const DEFAULT_CLIENT_FIELDS = {
   plan:null, targets:null,
   age:30, height:175, weight:85, goalWeight:78, activity:"1.375"
 };
+/* tests.html loads the app with ?selftest: storage stays in memory and
+   Firebase is never started, so a test run can't touch real clients or the
+   real cloud account. */
+const SELFTEST=location.search.indexOf("selftest")>-1;
 const DB = {
   mem:{},
-  get(k,d){ try{const v=localStorage.getItem(k); if(v!=null) return JSON.parse(v);}catch(e){}
+  get(k,d){ if(!SELFTEST){ try{const v=localStorage.getItem(k); if(v!=null) return JSON.parse(v);}catch(e){} }
             return (k in this.mem)?this.mem[k]:d; },
-  set(k,v){ this.mem[k]=v; try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} }
+  set(k,v){ this.mem[k]=v; if(!SELFTEST){ try{localStorage.setItem(k,JSON.stringify(v));}catch(e){} } }
 };
 /* Cloud backup. The browser copy (pw_profiles) stays the working copy; when
    the owner is signed in, every client is mirrored to Firestore at
@@ -3497,7 +3501,7 @@ if(Account.user && Account.data){
 <script type="module">
 /* Loads Firebase only when a real config has been pasted above (otherwise the app stays local-only). */
 const cfg = FIREBASE_CONFIG;
-if (cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
+if (!SELFTEST && cfg && cfg.apiKey && !cfg.apiKey.startsWith("PASTE")) {
   try {
     const { initializeApp } = await import("https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js");
     const { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword,

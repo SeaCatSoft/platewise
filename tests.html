@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PlateWise self-test</title>
+<style>
+  body{font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;margin:0;background:#f2f2f7;color:#1c1c1e}
+  main{max-width:880px;margin:0 auto;padding:24px 20px 60px}
+  h1{font-size:1.5rem;margin:0 0 4px}
+  p.sub{margin:0 0 18px;color:#5c6865}
+  .bar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:18px}
+  button{font:inherit;font-weight:600;border:0;border-radius:10px;padding:10px 18px;background:#0e7c6b;color:#fff;cursor:pointer}
+  button:disabled{opacity:.5;cursor:default}
+  #summary{font-weight:700}
+  .pass{color:#1e7a45}.fail{color:#c93e28}
+  .group{background:#fff;border-radius:14px;margin:0 0 14px;overflow:hidden;box-shadow:0 1px 2px rgba(0,0,0,.05)}
+  .group h2{font-size:.8125rem;letter-spacing:.06em;text-transform:uppercase;margin:0;padding:10px 16px;background:#e1f0ed;color:#0e7c6b}
+  .row{display:flex;gap:10px;padding:9px 16px;border-top:1px solid #eef1f0;align-items:baseline}
+  .row .mark{flex:none;width:16px;font-weight:800}
+  .row .name{flex:1}
+  .row .detail{flex:none;max-width:48%;font-size:.8125rem;color:#5c6865;text-align:right;word-break:break-word}
+  .row.bad{background:#fbe9e5}
+  iframe{position:absolute;left:-9999px;top:0;width:1100px;height:900px;border:0}
+  #log{font-size:.8125rem;color:#5c6865;margin:0 0 14px}
+</style>
+</head>
+<body>
+<main>
+  <h1>PlateWise self-test</h1>
+  <p class="sub">Loads the app in test mode (memory only: it never touches your real clients or your cloud account) and checks the data, recipes, planner, shopping, clients, sync, report and phone layout.</p>
+  <div class="bar"><button id="run">Run tests</button><span id="summary"></span></div>
+  <p id="log"></p>
+  <div id="results"></div>
+</main>
+<iframe id="app" title="app under test"></iframe>
+
+<script>
+/* ------------------------------------------------------------------
+   Suites are plain functions. They are converted to source and evaluated
+   INSIDE the app's window, so they can use its globals (FOODS, state,
+   generatePlan, ...) directly. Each returns an array of
+   {group, name, ok, detail}.
+   ------------------------------------------------------------------ */
+
+async function logicSuite(){
+  const R=[];
+  const t=(group,name,ok,detail)=>R.push({group,name,ok:!!ok,detail:detail==null?"":String(detail)});
+  const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const noop=()=>{};
+  const real={goStep:window.goStep,renderPlan:window.renderPlan,toast:window.toast,syncAccountData:window.syncAccountData};
+  const mute=()=>{ window.goStep=noop; window.renderPlan=noop; window.toast=noop; window.syncAccountData=noop; };
+  const unmute=()=>Object.assign(window,real);
+  const PLATED=["protein","carb","veg","fruit","fat"];
+  const allLiked=FOODS.filter(f=>PLATED.includes(f.role)).map(f=>f.id);
+  const stdLiked=FOODS.filter(f=>f.std).map(f=>f.id);
+  const gen=(liked,weeks,mpd,diet,goal)=>{
+    state.liked=new Set(liked); state.weeks=weeks; state.mealsPerDay=mpd; state.diet=diet||"standard"; state.dietMode="all";
+    state.sex="male"; state.bodyType=BODY_TYPES.male[1].id; state.goal=goal||GOALS[0].id;
+    generatePlan(); return state.plan;
+  };
+  const sig=m=>m.items.map(([f])=>f.id).join("+");
+  const group=async(name,fn)=>{ try{ await fn(); }catch(e){ t(name,"suite ran without throwing",false,e.message); } };
+
+  /* ---------------- DATA ---------------- */
+  await group("Data",()=>{
+    const G="Data", ids=FOODS.map(f=>f.id);
+    t(G,"food ids are unique",new Set(ids).size===ids.length,ids.length+" foods");
+    const badNum=FOODS.filter(f=>!["k","p","c","f","fib"].every(k=>typeof f.per100[k]==="number"));
+    t(G,"every food has numeric nutrition",!badNum.length,badNum.map(f=>f.id).join(", "));
+    const badPrice=[]; FOODS.forEach(f=>Object.entries(f.prices).forEach(([s,e])=>{ if(!STORES.includes(s)||!(e.p>0)||!(e.g>0)||!e.n) badPrice.push(f.id+"@"+s); }));
+    t(G,"every price entry has a known store, price, pack size and name",!badPrice.length,badPrice.slice(0,6).join(", "));
+    const unpriced=FOODS.filter(f=>!Object.keys(f.prices).length);
+    const noAlt=unpriced.filter(f=>{ const a=FOODS.find(x=>x.id===f.alt); return !(a&&Object.keys(a.prices).length); });
+    t(G,"every unpriced food names a priced alternative",!noAlt.length,`${unpriced.length} unpriced; missing: ${noAlt.map(f=>f.id).join(", ")||"none"}`);
+    const badType=Object.values(FOOD_TYPE).flat().filter(id=>!ids.includes(id));
+    t(G,"food-type lists only reference real foods",!badType.length,badType.join(", "));
+    t(G,"each plated role has at least one priced food",PLATED.every(r=>FOODS.some(f=>f.role===r&&Object.keys(f.prices).length)),"");
+    const badPantry=Object.entries(PANTRY).filter(([k,v])=>!(v.name&&v.unit&&v.per>0&&v.pack)).map(([k])=>k);
+    t(G,"every seasoning has a name, unit, pack size and pack",!badPantry.length,badPantry.join(", "));
+    t(G,"staple foods are priced",STAPLE_FOODS.every(id=>{ const f=FOODS.find(x=>x.id===id); return f&&Object.keys(f.prices).length; }),"");
+  });
+
+  /* ---------------- RECIPES ---------------- */
+  await group("Recipes",()=>{
+    const G="Recipes", ids=MEALPREP_RECIPES.map(r=>r.id);
+    t(G,"the guide's 29 recipes are all defined",ids.length===29 && new Set(ids).size===29,ids.length+" defined");
+    t(G,"every recipe lists its Bajan swaps and source",MEALPREP_RECIPES.every(r=>Array.isArray(r.swaps)&&r.swaps.length&&r.from),"");
+    mute();
+    const fit=new Set(), picked=new Set(), bad=[], badExtra=[]; let nondet=0, plans=0;
+    const prot=FOODS.filter(f=>f.role==="protein"), veg=FOODS.filter(f=>f.role==="veg");
+    const rest=FOODS.filter(f=>["carb","fruit","fat"].includes(f.role)).map(f=>f.id);
+    const scan=(mpd)=>state.plan.forEach(wk=>wk.days.forEach(d=>d.meals.forEach((m,mi)=>{
+      const bf=mpd===3&&mi===0;
+      recipeCandidates(m,bf).forEach(r=>fit.add(r.id));
+      const r=recipeFor(m,bf); if(r.id) picked.add(r.id);
+      if(JSON.stringify(recipeFor(m,bf))!==JSON.stringify(r)) nondet++;
+      if(/undefined|null|NaN|\[object/.test(r.title+" "+r.steps.join(" "))||!r.steps.length) bad.push(r.id||r.title);
+      (r.extras||[]).forEach(e=>{ if(e.f&&!FOODS.some(x=>x.id===e.f)) badExtra.push(e.f); if(e.p&&!PANTRY[e.p]) badExtra.push(e.p); });
+    })));
+    for(const P of prot) for(const V of veg){ gen([P.id,V.id,...rest],4,3); scan(3); plans++; }
+    for(const P of prot){ gen([P.id,...veg.map(v=>v.id),...rest],4,2); scan(2); plans++; }
+    gen(FOODS.map(f=>f.id),4,3,"keto"); scan(3); plans++;
+    unmute();
+    t(G,"every recipe fits real generated meals",fit.size===ids.length,`${fit.size}/${ids.length} across ${plans} plans; never fit: ${ids.filter(i=>!fit.has(i)).join(", ")||"none"}`);
+    t(G,"every recipe actually gets chosen",picked.size===ids.length,`never chosen: ${ids.filter(i=>!picked.has(i)).join(", ")||"none"}`);
+    t(G,"no recipe has broken text or empty steps",!bad.length,[...new Set(bad)].join(", "));
+    t(G,"every recipe extra is a real food or seasoning",!badExtra.length,[...new Set(badExtra)].join(", "));
+    t(G,"the same meal always gets the same recipe",nondet===0,nondet+" differed");
+  });
+
+  /* ---------------- PLANNER ---------------- */
+  await group("Planner",()=>{
+    const G="Planner"; mute();
+    const check=(label,liked,diet,goal,maxOff)=>{
+      const plan=gen(liked,4,3,diet,goal), days=plan.flatMap(w=>w.days), wk1=plan[0].days;
+      const offs=days.map((d,i)=>{ const T=plan[Math.floor(i/7)].targets.kcal; return Math.abs(d.dayTot.k-T)/T*100; });
+      t(G,`${label}: every day lands within ${maxOff}% of its calorie target`,Math.max(...offs)<=maxOff,"worst day "+Math.max(...offs).toFixed(1)+"%");
+      return {plan,days,wk1};
+    };
+    {
+      const {days,wk1}=check("standard basket",stdLiked,"standard","lose",12);
+      const wkMeals=wk1.flatMap(d=>d.meals);
+      t(G,"standard basket: 7 different breakfasts in a week",new Set(wk1.map(d=>sig(d.meals[0]))).size===7,new Set(wk1.map(d=>sig(d.meals[0]))).size+" distinct");
+      t(G,"standard basket: all 21 meals in a week are different",new Set(wkMeals.map(sig)).size===21,new Set(wkMeals.map(sig)).size+" of 21");
+      let same=0; for(let i=1;i<days.length;i++) days[i].meals.forEach((m,mi)=>{ if(m.items[0][0].id===days[i-1].meals[mi].items[0][0].id) same++; });
+      t(G,"the same protein never repeats from the day before",same===0,same+" repeats");
+      t(G,"tomorrow's lunch is never tonight's dinner",days.slice(1).every((d,i)=>sig(d.meals[1])!==sig(days[i].meals[2])),"");
+      t(G,"yogurt is only used at breakfast",!days.some(d=>[d.meals[1],d.meals[2]].some(m=>m.items.some(([f])=>f.id==="yogurt"))),"");
+      const bad=days.flatMap(d=>d.meals).filter(m=>{ const k=m.items.reduce((s,[f,g])=>s+f.per100.k*g/100,0); return Math.abs(k-m.tot.k)>1; });
+      t(G,"each meal's calories equal the sum of its foods",!bad.length,bad.length+" off");
+    }
+    check("everything ticked, muscle goal",allLiked,"standard","muscle",15);
+    check("vegan",allLiked,"vegan","lose",15);
+    check("vegetarian",allLiked,"vegetarian","sugar",15);
+    check("mediterranean",allLiked,"mediterranean","transform",15);
+    {
+      const {days}=check("keto",allLiked,"keto","lose",22);
+      t(G,"keto: no single meal over 900 kcal",Math.max(...days.flatMap(d=>d.meals).map(m=>m.tot.k))<=900,Math.round(Math.max(...days.flatMap(d=>d.meals).map(m=>m.tot.k)))+" kcal max");
+    }
+    unmute();
+  });
+
+  /* ---------------- SHOPPING ---------------- */
+  await group("Shopping",()=>{
+    const G="Shopping"; mute();
+    gen(allLiked,2,3,"standard","lose"); unmute();
+    const R={};
+    for(const mode of ["cheapest","single"]){
+      state.priceMode=mode; state.store="Aone Supermarkets";
+      let err=null; try{ R[mode]=computeShopRows(); renderShopping(); }catch(e){ err=e.message; }
+      t(G,`${mode} pricing builds a list without errors`,!err&&R[mode]&&R[mode].total>0,err||("total $"+(R[mode]?R[mode].total.toFixed(2):"?")));
+    }
+    t(G,"foods missing from the price list say \"No pricing available\"",R.cheapest.rows.some(r=>r.noPrice&&/closest priced alternative/.test(r.note||"")),
+      R.cheapest.rows.filter(r=>r.noPrice).length+" unpriced rows");
+    t(G,"unpriced foods are left out of the total",R.cheapest.rows.filter(r=>r.noPrice).every(r=>r.price==null),"");
+    t(G,"pantry staples are never swapped for unrelated foods in single-store mode",
+      R.single.rows.filter(r=>/milk powder|honey|flour|stock cubes/i.test(r.name)).every(r=>!/Flour 1kg/.test(r.buy)||/flour/i.test(r.name)),"");
+    state.priceMode="cheapest";
+    const wk=computeShopRows([state.plan[0]],{noExtras:true}), all=computeShopRows();
+    t(G,"one week costs less than the whole plan",wk.total>0&&wk.total<all.total,`$${wk.total.toFixed(2)} vs $${all.total.toFixed(2)}`);
+    let ce=null; try{ renderShopping(); confirmList(); }catch(e){ ce=e.message; }
+    t(G,"confirming the list builds the checklist",!ce,ce||"");
+  });
+
+  /* ---------------- CLIENTS & SYNC ---------------- */
+  await group("Clients",async()=>{
+    const G="Clients";
+    DB.mem={}; Account.user=null; Account.data=null; Cloud.user=null;
+    const names=()=>Object.keys(DB.get("pw_profiles",{}));
+    // a client with a real plan
+    mute(); unmute();
+    activateClient("Alice");
+    gen(allLiked,4,3,"standard","lose"); syncAccountData();
+    const alicePlan=JSON.stringify(state.plan.map(w=>w.days.map(d=>d.meals.map(m=>m.name+sig(m)))));
+    document.getElementById("weight").value="71"; syncAccountData();
+    activateClient("Bob");
+    t(G,"a new client starts clean, without the previous client's plan",state.plan===null&&document.getElementById("weight").value==="85","");
+    activateClient("Alice");
+    t(G,"switching back restores the plan exactly",JSON.stringify(state.plan.map(w=>w.days.map(d=>d.meals.map(m=>m.name+sig(m)))))===alicePlan,"");
+    t(G,"…and restores their stats",document.getElementById("weight").value==="71","");
+    const stored=JSON.stringify(DB.get("pw_profiles").Alice);
+    t(G,"a 4-week client is stored compactly",stored.length<100000,Math.round(stored.length/1024)+" KB");
+    t(G,"stored plans hold food ids, not whole food objects",!/"prices"/.test(stored),"");
+    // old format (full food objects) still loads
+    const old=JSON.parse(stored);
+    old.plan=state.plan.map(w=>({...w,days:w.days.map(d=>({...d,meals:d.meals.map(m=>({...m,items:m.items.map(([f,g])=>[JSON.parse(JSON.stringify(f)),g])}))}))}));
+    let oe=null; try{ applyClientSnapshot(old); }catch(e){ oe=e.message; }
+    t(G,"plans saved in the old format still load",!oe&&state.plan&&state.plan[0].days[0].meals[0].items[0][0]===FOODS.find(f=>f.id===state.plan[0].days[0].meals[0].items[0][0].id),oe||"");
+    let pe=null; try{ DB.set("pw_profiles",{...DB.get("pw_profiles"),Legacy:{logs:[],shopping:null,pantry:{}}}); activateClient("Legacy"); }catch(e){ pe=e.message; }
+    t(G,"a profile saved before the roster existed loads with defaults",!pe&&state.sex==="male"&&state.plan===null,pe||"");
+
+    // rename / delete
+    const rp=window.prompt; window.prompt=()=>"Alice Smith"; renameClient("Alice"); window.prompt=rp;
+    t(G,"renaming keeps the whole record",names().includes("Alice Smith")&&!names().includes("Alice")&&!!DB.get("pw_profiles")["Alice Smith"].plan,names().join(", "));
+    window.prompt=()=>"Bob"; renameClient("Alice Smith"); window.prompt=rp;
+    t(G,"renaming onto an existing name is refused",names().includes("Alice Smith"),"");
+    activateClient("Bob"); deleteClient("Bob");
+    t(G,"deleting the active client clears the selection",Account.user===null&&!names().includes("Bob"),"");
+
+    // cloud sync against an in-memory Firestore
+    const realFB=window.FB, store={}; const writes=[];
+    window.FB={ listClients:async uid=>Object.entries(store[uid]||{}).map(([id,v])=>({id,...v})),
+                saveClient:async(uid,id,p)=>{ (store[uid]=store[uid]||{})[id]=p; writes.push(id); } };
+    Cloud.user={uid:"u1",email:"test@example.com"};
+    activateClient("Alice Smith"); document.getElementById("weight").value="66"; syncAccountData();
+    await sleep(1000);
+    const doc=store.u1&&store.u1["Alice%20Smith"];
+    t(G,"edits are backed up to the cloud",!!doc&&JSON.parse(doc.json).weight===66,doc?"":"no document written");
+    t(G,"a cloud record is {name, json, updatedAt} with no nested arrays",!!doc&&typeof doc.json==="string"&&Object.keys(doc).sort().join()==="json,name,updatedAt","");
+    t(G,"a 4-week client fits Firestore's 1 MB limit",!!doc&&doc.json.length<900000,doc?Math.round(doc.json.length/1024)+" KB":"");
+    const p=DB.get("pw_profiles");
+    p.LocalOnly={...Account.blank(),weight:70,updatedAt:5000};
+    p.Newer={...Account.blank(),weight:90,updatedAt:9000};
+    p.Older={...Account.blank(),weight:60,updatedAt:1000};
+    p.StaleDeleted={...Account.blank(),weight:99,updatedAt:1};
+    p.EditedAfterDelete={...Account.blank(),weight:55,updatedAt:Date.now()+60000};
+    DB.set("pw_profiles",p);
+    store.u1.Newer={name:"Newer",json:JSON.stringify({...Account.blank(),weight:11,updatedAt:2000}),updatedAt:2000};
+    store.u1.Older={name:"Older",json:JSON.stringify({...Account.blank(),weight:22,updatedAt:8000}),updatedAt:8000};
+    store.u1["Only%20Cloud"]={name:"Only Cloud",json:JSON.stringify({...Account.blank(),weight:33,updatedAt:3000}),updatedAt:3000};
+    store.u1.StaleDeleted={name:"StaleDeleted",deleted:true,json:"",updatedAt:Date.now()};
+    store.u1.EditedAfterDelete={name:"EditedAfterDelete",deleted:true,json:"",updatedAt:Date.now()};
+    await Cloud.pull(); await sleep(1000);
+    const q=DB.get("pw_profiles");
+    t(G,"sync: a client that only exists in the cloud is downloaded",!!q["Only Cloud"]&&q["Only Cloud"].weight===33,"");
+    t(G,"sync: a client that only exists here is uploaded",!!store.u1.LocalOnly,"");
+    t(G,"sync: the newer copy wins in both directions",q.Older.weight===22&&q.Newer.weight===90&&JSON.parse(store.u1.Newer.json).weight===90,"");
+    t(G,"sync: a deleted client's stale copy is removed, not re-uploaded",!q.StaleDeleted&&store.u1.StaleDeleted.deleted===true,"");
+    t(G,"sync: a client edited after it was deleted elsewhere is kept",!!q.EditedAfterDelete&&!store.u1.EditedAfterDelete.deleted,"");
+    deleteClient("Newer"); await sleep(300);
+    t(G,"deleting writes a tombstone to the cloud",store.u1.Newer&&store.u1.Newer.deleted===true,"");
+    window.FB=realFB; Cloud.user=null;
+  });
+
+  /* ---------------- REPORT ---------------- */
+  await group("Report",async()=>{
+    const G="Report";
+    DB.mem={}; Account.user=null; Account.data=null;
+    activateClient("Report Client");
+    mute(); gen(stdLiked,2,3,"standard","lose"); unmute();
+    DB.set("pw_brand",{name:"Island Fuel Meal Prep",contact:"246-555-0123"});
+    goView("report"); await sleep(300);
+    const doc=document.getElementById("reportDoc");
+    t(G,"opens with the client's name and the business name",/Report Client/.test(doc.querySelector(".doc-title").textContent)&&/Island Fuel/.test(doc.querySelector(".doc-brand").textContent),"");
+    t(G,"shows four daily target tiles",doc.querySelectorAll(".ds").length===4,"");
+    t(G,"the weekly menu has a row per day",doc.querySelectorAll(".doc-menu tbody tr").length===7,"");
+    t(G,"includes the prep-day plan and the shopping list",doc.querySelectorAll(".rt-prep").length>0&&/Shopping list/.test(doc.textContent),"");
+    t(G,"keeps its own light colours and forces print colours",getComputedStyle(doc).printColorAdjust==="exact"||getComputedStyle(doc).webkitPrintColorAdjust==="exact","");
+    const txt=reportText();
+    t(G,"copy-as-text starts with the business name and lists seven days",/^\*Island Fuel Meal Prep\*/.test(txt)&&(txt.match(/^\*(Mon|Tues|Wednes|Thurs|Fri|Satur|Sun)day\*/gm)||[]).length===7,"");
+    document.getElementById("optPrep").checked=false; document.getElementById("optShop").checked=false; renderReport();
+    t(G,"the prep and shopping sections can be switched off",!/Prep-day plan/.test(doc.textContent)&&!/Shopping list/.test(doc.textContent),"");
+    goView("planner");
+  });
+  return R;
+}
+
+async function layoutSuite(){
+  const R=[]; const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+  const noop=()=>{};
+  const width=document.documentElement.clientWidth;      // a little under the nominal width: the test frame has a scrollbar
+  const G=`Phone layout (${window.__nominalWidth||width}px)`;
+  const scan=label=>{
+    const vw=document.documentElement.clientWidth, issues=[];
+    if(document.documentElement.scrollWidth>vw+1) issues.push(`page scrolls sideways (${document.documentElement.scrollWidth}>${vw})`);
+    const seen=new Set();
+    document.querySelectorAll("body *").forEach(el=>{
+      if(el.offsetParent===null && getComputedStyle(el).position!=="fixed") return;
+      const r=el.getBoundingClientRect(); if(!r.width||!r.height||r.right<=vw+2) return;
+      let p=el.parentElement, sc=false;
+      while(p){ const o=getComputedStyle(p); if(/(auto|scroll|hidden)/.test(o.overflowX)&&p.scrollWidth>p.clientWidth){sc=true;break;} p=p.parentElement; }
+      if(sc) return;
+      const k=el.tagName+(el.id?"#"+el.id:"")+"."+(typeof el.className==="string"?el.className.split(" ")[0]:"");
+      if(!seen.has(k)){ seen.add(k); issues.push(`${k} right=${Math.round(r.right)}`); }
+    });
+    R.push({group:G,name:label+": nothing runs past the screen edge",ok:!issues.length,detail:issues.slice(0,4).join("; ")});
+  };
+  DB.mem={}; Account.user=null; Account.data=null;
+  for(let n=1;n<=5;n++){ goStep(n); await sleep(350); scan("setup step "+n); }
+  activateClient("A client with a rather long name");
+  const sv={goStep:window.goStep,renderPlan:window.renderPlan,toast:window.toast};
+  window.goStep=noop; window.renderPlan=noop; window.toast=noop;
+  state.liked=new Set(FOODS.filter(f=>f.std).map(f=>f.id)); state.bodyType=BODY_TYPES.male[1].id; state.goal=GOALS[0].id; state.weeks=2;
+  generatePlan(); Object.assign(window,sv);
+  goStep(6); renderPlan(); await sleep(500); scan("plan");
+  // the menu must be usable: all three buttons present, sized, inside the screen
+  const bar=[...document.querySelectorAll(".topnav button")].map(b=>b.getBoundingClientRect());
+  R.push({group:G,name:"top bar shows all three buttons, tappable and on screen",
+          ok:bar.length===3&&bar.every(r=>r.width>40&&r.height>=32&&r.right<=width+1),detail:bar.map(r=>`${Math.round(r.width)}x${Math.round(r.height)}`).join(" ")});
+  buildShopping(); await sleep(500); scan("shopping list");
+  confirmList(); await sleep(500); scan("shopping checklist");
+  goView("progress"); await sleep(500); scan("progress");
+  goView("report"); await sleep(500); scan("report");
+  document.getElementById("optRecipes").checked=true; renderReport(); await sleep(300); scan("report with recipes");
+  toggleAuth(); await sleep(500); scan("clients sheet");
+  return R;
+}
+
+/* ------------------------------ runner ------------------------------ */
+const frame=document.getElementById("app");
+const $=id=>document.getElementById(id);
+const loadApp=(w)=>new Promise(res=>{
+  frame.style.width=w+"px";
+  frame.onload=()=>{ try{ frame.contentWindow.__nominalWidth=w; }catch(e){} setTimeout(res,1500); };
+  frame.src=(new URLSearchParams(location.search).get("app")||"index.html")+"?selftest&t="+Date.now();
+});
+const inApp=fn=>frame.contentWindow.eval("("+fn.toString()+")")();
+
+function render(all){
+  const groups={}; all.forEach(r=>(groups[r.group]=groups[r.group]||[]).push(r));
+  $("results").innerHTML=Object.entries(groups).map(([g,rows])=>
+    `<section class="group"><h2>${g} — ${rows.filter(r=>r.ok).length}/${rows.length}</h2>`+
+    rows.map(r=>`<div class="row ${r.ok?"":"bad"}"><span class="mark ${r.ok?"pass":"fail"}">${r.ok?"✓":"✗"}</span>
+      <span class="name">${r.name}</span><span class="detail">${r.detail?String(r.detail).replace(/</g,"&lt;"):""}</span></div>`).join("")+
+    `</section>`).join("");
+  const bad=all.filter(r=>!r.ok).length;
+  $("summary").innerHTML=bad?`<span class="fail">${bad} of ${all.length} checks failed</span>`:`<span class="pass">All ${all.length} checks passed</span>`;
+}
+
+async function runAll(){
+  $("run").disabled=true; $("results").innerHTML=""; $("summary").textContent="";
+  const all=[];
+  try{
+    $("log").textContent="Loading the app in test mode…";
+    await loadApp(1100);
+    $("log").textContent="Running data, recipe, planner, shopping, client, sync and report checks (about 20 seconds)…";
+    all.push(...await inApp(logicSuite));
+    render(all);
+    for(const w of [375,320]){
+      $("log").textContent=`Checking the phone layout at ${w}px…`;
+      await loadApp(w);
+      all.push(...await inApp(layoutSuite));
+      render(all);
+    }
+    $("log").textContent="Done. Nothing was written to your real clients or cloud account.";
+  }catch(e){
+    all.push({group:"Runner",name:"the test run completed",ok:false,detail:e.message});
+    render(all); $("log").textContent="The run stopped early.";
+  }
+  $("run").disabled=false;
+}
+$("run").addEventListener("click",runAll);
+if(location.hash==="#auto") runAll();
+</script>
+</body>
+</html>

@@ -88,6 +88,16 @@ local mode — nothing breaks.
 design (it identifies the project, it doesn't grant access). Security comes
 from the Firestore rules in step 5 and from Authentication itself.
 
+## Self-test
+Open `tests.html` (next to `index.html`, e.g. `https://<username>.github.io/<repo>/tests.html`)
+and press **Run tests**. It loads the app in a test mode that keeps everything in
+memory and never starts Firebase, so it can't touch your real clients or your
+cloud account. About 90 checks cover the food and price data, all 29 guide
+recipes (each must fit real meals and actually get chosen), meal variety and
+calorie accuracy across eating styles, shopping totals, client switching,
+rename/delete, cloud sync merging (including deletions), the report, and the
+phone layout at 375 px and 320 px. Run it after any change.
+
 ## Recipe ingredients & seasonings
 Each recipe declares an `extras` list alongside its steps. Two kinds:
 `X("onions",40)` adds grams of a **priced** food to the shopping totals, and
