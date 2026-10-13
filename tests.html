@@ -70,6 +70,12 @@ async function logicSuite(){
     t(G,"every food has numeric nutrition",!badNum.length,badNum.map(f=>f.id).join(", "));
     const badPrice=[]; FOODS.forEach(f=>Object.entries(f.prices).forEach(([s,e])=>{ if(!STORES.includes(s)||!(e.p>0)||!(e.g>0)||!e.n) badPrice.push(f.id+"@"+s); }));
     t(G,"every price entry has a known store, price, pack size and name",!badPrice.length,badPrice.slice(0,6).join(", "));
+    const badDate=[]; FOODS.forEach(f=>Object.entries(f.prices).forEach(([s,e])=>{ if(!/^\d{4}-\d{2}-\d{2}$/.test(e.d||"")||isNaN(Date.parse(e.d))) badDate.push(f.id+"@"+s); }));
+    t(G,"every price carries the date it was listed",!badDate.length,badDate.slice(0,6).join(", "));
+    const total=FOODS.reduce((n,f)=>n+Object.keys(f.prices).length,0), fresh=FOODS.reduce((n,f)=>n+Object.values(f.prices).filter(e=>e.d>=PRICE_STALE_BEFORE).length,0);
+    t(G,"most price entries are current, not older survey prices",fresh/total>0.5,`${fresh} of ${total} current (latest ${PRICE_LATEST})`);
+    const spread=FOODS.filter(f=>Object.keys(f.prices).length>=3).filter(f=>{ const v=Object.values(f.prices).map(e=>e.p/e.g).sort((a,b)=>a-b); return v[v.length-1]/v[0]>8; }).map(f=>f.id);
+    t(G,"no food's store prices differ by more than 8x (a sign of a data error)",!spread.length,spread.join(", "));
     const unpriced=FOODS.filter(f=>!Object.keys(f.prices).length);
     const noAlt=unpriced.filter(f=>{ const a=FOODS.find(x=>x.id===f.alt); return !(a&&Object.keys(a.prices).length); });
     t(G,"every unpriced food names a priced alternative",!noAlt.length,`${unpriced.length} unpriced; missing: ${noAlt.map(f=>f.id).join(", ")||"none"}`);
@@ -154,6 +160,15 @@ async function logicSuite(){
     t(G,"foods missing from the price list say \"No pricing available\"",R.cheapest.rows.some(r=>r.noPrice&&/closest priced alternative/.test(r.note||"")),
       R.cheapest.rows.filter(r=>r.noPrice).length+" unpriced rows");
     t(G,"unpriced foods are left out of the total",R.cheapest.rows.filter(r=>r.noPrice).every(r=>r.price==null),"");
+    {
+      // an item only an old price exists for must say so
+      const f=FOODS.find(x=>x.id==="onions"), keep=f.prices;
+      const staleE={}; Object.entries(keep).forEach(([s,e])=>staleE[s]={...e,d:"2025-11-05"});
+      f.prices=staleE;
+      const rr=computeShopRows().rows.find(r=>r.id==="onions");
+      f.prices=keep;
+      t(G,"a price older than the cut-off is marked as older",!!rr&&rr.old===true&&/Older price/.test(rr.note||""),rr?rr.note:"onions not in plan");
+    }
     t(G,"pantry staples are never swapped for unrelated foods in single-store mode",
       R.single.rows.filter(r=>/milk powder|honey|flour|stock cubes/i.test(r.name)).every(r=>!/Flour 1kg/.test(r.buy)||/flour/i.test(r.name)),"");
     state.priceMode="cheapest";

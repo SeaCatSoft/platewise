@@ -14,7 +14,7 @@ optional Firebase accounts for cross-device sync.
 - **Full recipes** for every generated meal, with real amounts from your plan
   (Bajan-style stews, peas & rice, cutters, porridges, keto plates, vegan bowls)
 - **1–4 week plans, 1–3 meals/day**, macros per meal, day and week
-- **Real prices:** Government of Barbados retail price survey (askdealia.gov.bb)
+- **Real prices:** Government of Barbados retail prices from AskDealia (askdealia.gov.bb)
   across 14 supermarkets — cheapest brand per item per store; choose the
   lowest total across stores or shop at one supermarket, with automatic
   alternatives ("Not stocked — suggested alternative…") or a
@@ -109,11 +109,21 @@ reference it in the relevant recipe branch — the shopping list and checklist
 pick it up automatically.
 
 ## Updating prices
-All food and price data sits in one array in `index.html` (`FOODS`), built
-from the official surveys of 5 Nov, 25 Nov and 12 Dec 2025. Each store entry
-is `{ p: pack price BBD, g: pack grams, n: product name }` — omit a store to
-mark an item unstocked there. Fresh figures from
-[askdealia.gov.bb](https://askdealia.gov.bb/) can be pasted straight in.
+All food and price data sits in one array in `index.html` (`FOODS`). Each store
+entry is `{ p: pack price BBD, g: pack grams, n: product name, d: date listed }`
+— omit a store to mark an item unstocked there. The date drives two things: the
+"prices last updated" wording, and an "Older price (Nov 2025)" mark on any
+shopping row whose price is more than about four months older than the newest
+one in the data (a store that hasn't re-listed an item keeps its previous price
+rather than losing the item).
+
+The current data merges AskDealia's live product pages (listed Aug–Oct 2026)
+over the Nov–Dec 2025 government survey export (`prices_file.xlsx`, linked from
+the AskDealia footer): a store's live price wins, the survey price fills the
+gaps, and any price more than about 3x away from the food's median is dropped as
+a data error. Foods neither source lists (zucchini, green beans, brussels
+sprouts, cabbage, callaloo, sweet potato) show "No pricing available" with a
+suggested priced alternative. After changing prices, open `tests.html`.
 
 ## Disclaimer
 General wellness guidance, not medical advice. Anyone with diabetes or another
